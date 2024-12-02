@@ -4,4 +4,8 @@ version = "0.1.0"
 description = "Trades microservice"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "loguru>=0.7.2",
+    "pydantic>=2.9.2",
+    "quixstreams>=3.3.0",
+]
