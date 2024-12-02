@@ -49,10 +49,6 @@ class KrakenWebsocketAPI:
             data = response.get("data", [])
             return (KrakenTrade.model_validate(trade).into() for trade in data)
 
-        except json.JSONDecodeError as e:
-            logger.error(f"Error decoding JSON: {e}")
-            return []
-
         except ValidationError as e:
             logger.error(f"Error validating trade: {e}")
             return []
