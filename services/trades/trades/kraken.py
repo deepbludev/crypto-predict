@@ -10,8 +10,8 @@ from trades.trade import Trade
 
 class KrakenTrade(BaseModel):
     """
-    Represents a trade from the Kraken API. It is a snapshot of the trades
-    for a given symbol and it is designed to easily convert to a generic Trade object.
+    Represents a trade snapshot from the Kraken API for a given symbol.
+    It can be easily converted to a generic Trade object.
     """
 
     symbol: str = Field(serialization_alias="pair")
