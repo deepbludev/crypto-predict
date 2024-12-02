@@ -9,7 +9,7 @@ class Trade(BaseModel):
     Represents a trade from a crypto exchange.
     """
 
-    symbol: str
+    pair: str
     price: float
     volume: float
     timestamp: datetime

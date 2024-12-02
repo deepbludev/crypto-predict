@@ -4,16 +4,17 @@ from typing import Any, Iterable
 
 import websocket as ws
 from loguru import logger
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from trades.trade import Trade
 
 
 class KrakenTrade(BaseModel):
     """
-    Represents a trade from the Kraken API.
+    Represents a trade from the Kraken API. It is a snapshot of the trades
+    for a given symbol and it is designed to easily convert to a generic Trade object.
     """
 
-    symbol: str
+    symbol: str = Field(serialization_alias="pair")
     price: float
     qty: float = Field(serialization_alias="volume")
     timestamp: datetime
@@ -35,8 +36,11 @@ class KrakenWebsocketAPI:
         self._subscribe()
 
     def get_trades(self) -> Iterable[Trade]:
-        # transform raw string into a JSON object
-
+        """
+        Receives a raw string from the websocket and converts it into a list of Trade objects.
+        If the message is not a trade message (such as a heartbeat), or the message is malformed,
+        it returns an empty list.
+        """
         try:
             response = json.loads(self._client.recv())
             if not is_trade(response):
@@ -47,6 +51,10 @@ class KrakenWebsocketAPI:
 
         except json.JSONDecodeError as e:
             logger.error(f"Error decoding JSON: {e}")
+            return []
+
+        except ValidationError as e:
+            logger.error(f"Error validating trade: {e}")
             return []
 
     def _subscribe(self):
