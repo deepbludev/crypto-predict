@@ -46,8 +46,8 @@ class KrakenWebsocketAPI:
             if not is_trade(response):
                 return []
 
-            data = response.get("data", [])
-            return (KrakenTrade.model_validate(trade).into() for trade in data)
+            trades = response.get("data", [])
+            return (KrakenTrade.model_validate(trade).into() for trade in trades)
 
         except ValidationError as e:
             logger.error(f"Error validating trade: {e}")
