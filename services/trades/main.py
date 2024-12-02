@@ -1,24 +1,15 @@
-from datetime import datetime
-
+from loguru import logger
 from trades.core.settings import trades_settings
-from trades.trade import Trade
+from trades.kraken import KrakenWebsocketAPI
 
 
 def main():
-    print("Hello from trades!")
     settings = trades_settings()
-    print(settings)
-
-    trades = [
-        Trade(
-            symbol=symbol,
-            price=1.0,
-            volume=1.0,
-            timestamp=datetime.now(),
-        )
-        for symbol in settings.symbols
-    ]
-    print(trades)
+    kraken = KrakenWebsocketAPI(settings.symbols)
+    while True:
+        trades = kraken.get_trades()
+        for trade in trades:
+            logger.info(trade)
 
 
 if __name__ == "__main__":
