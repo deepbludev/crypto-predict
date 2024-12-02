@@ -1,2 +1,2 @@
 run:
-	uv run trades/main.py
+	uv run main.py

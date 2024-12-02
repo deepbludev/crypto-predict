@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     broker_address: str = "localhost:19092"
     topic: str = "trades"
-    pairs: list[str] = ["BTC/USD", "XRP/USD", "XLM/USD"]
+    pairs: list[str] = ["XRP/USD"]
 
 
 @lru_cache()
