@@ -62,7 +62,7 @@ class KrakenWebsocketAPI:
             raise RuntimeError("Websocket not connected. Call connect() first.")
         return self.ws
 
-    async def get_trades(self) -> AsyncIterator[Trade]:
+    async def stream_trades(self) -> AsyncIterator[Trade]:
         """
         Receives messages from the websocket and yields Trade objects.
         If the message is not a trade message or is malformed, it skips it.
@@ -98,15 +98,19 @@ class KrakenWebsocketAPI:
 
 
 async def process_trades(
-    kraken: KrakenWebsocketAPI, messagebus: QuixApp, topic_name: str
+    kraken: KrakenWebsocketAPI,
+    messagebus: QuixApp,
+    topic_name: str,
 ):
     """
     Background task that processes trades from the websocket connection.
+    It uses the Kraken websocket API to get the trades and the Quix messagebus
+    to produce them.
     """
     topic = messagebus.topic(name=topic_name, value_serializer="json")
     try:
         with messagebus.get_producer() as producer:
-            async for trade in kraken.get_trades():
+            async for trade in kraken.stream_trades():
                 message = topic.serialize(
                     key=trade.pair,
                     value=trade.serialize(),
