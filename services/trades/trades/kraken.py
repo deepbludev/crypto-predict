@@ -1,17 +1,22 @@
+"""
+Kraken websocket API implementation using async websockets.
+"""
+
+import asyncio
 import json
 from datetime import datetime
-from typing import Any, Iterable
+from typing import Any, AsyncIterator
 
-import websocket as ws
+import websockets
 from loguru import logger
 from pydantic import BaseModel, Field, ValidationError
 from trades.trade import Trade
+from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
 
 
 class KrakenTrade(BaseModel):
     """
     Represents a trade snapshot from the Kraken API for a given symbol.
-    It can be easily converted to a generic Trade object.
     """
 
     symbol: str = Field(serialization_alias="pair")
@@ -32,34 +37,78 @@ class KrakenWebsocketAPI:
 
     def __init__(self, symbols: list[str]):
         self.symbols = symbols
-        self._client = ws.create_connection(self._url)
-        self._subscribe()
+        self.ws = None
 
-    def get_trades(self) -> Iterable[Trade]:
+    async def connect(self):
         """
-        Receives a raw string from the websocket and converts it into a list of Trade objects.
-        If the message is not a trade message (such as a heartbeat), or the message is malformed,
-        it returns an empty list.
+        Establishes the websocket connection and subscribes to trades.
         """
-        try:
-            response = json.loads(self._client.recv())
-            if not is_trade(response):
-                return []
+        self.ws = await websockets.connect(self._url)
+        await self._subscribe()
 
-            trades = response.get("data", [])
-            return (KrakenTrade.model_validate(trade).into() for trade in trades)
-
-        except ValidationError as e:
-            logger.error(f"Error validating trade: {e}")
-            return []
-
-    def _subscribe(self):
+    async def _subscribe(self):
         """
         Subscribes to the websocket and waits for the initial snapshot.
         """
-        # send a subscribe message to the websocket
         subscribe_msg = dict(
             method="subscribe",
             params=dict(channel="trade", symbol=self.symbols, snapshot=True),
         )
-        self._client.send(json.dumps(subscribe_msg))
+        if not self.ws:
+            raise RuntimeError("Websocket not connected. Call connect() first.")
+
+        await self.ws.send(json.dumps(subscribe_msg))
+
+    async def get_trades(self) -> AsyncIterator[Trade]:
+        """
+        Receives messages from the websocket and yields Trade objects.
+        If the message is not a trade message or is malformed, it skips it.
+        """
+        if not self.ws:
+            raise RuntimeError("Websocket not connected. Call connect() first.")
+
+        while True:
+            try:
+                message = await self.ws.recv()
+                response = json.loads(message)
+
+                if not is_trade(response):
+                    continue
+
+                trades = response.get("data", [])
+                for trade in trades:
+                    try:
+                        kraken_trade = KrakenTrade.model_validate(trade)
+                        yield kraken_trade.into()
+                    except ValidationError as e:
+                        logger.error(f"Error validating trade: {e}")
+
+            except ConnectionClosedOK:
+                # Normal closure
+                logger.info("WebSocket connection closed normally.")
+                break
+            except ConnectionClosedError as e:
+                # Abnormal closure
+                logger.error(f"WebSocket connection closed with error: {e}")
+                break
+            except Exception as e:
+                logger.error(f"Error processing message: {e}")
+                continue
+
+
+async def process_trades(kraken_client: KrakenWebsocketAPI):
+    """
+    Background task that processes trades from the websocket connection.
+    """
+    try:
+        async for trade in kraken_client.get_trades():
+            logger.info(trade)
+            # TODO: send trade to messagebus
+
+    except asyncio.CancelledError:
+        logger.info("Trade processing task was cancelled")
+        raise
+    except Exception as e:
+        logger.error(f"Error processing trades: {e}")
+    finally:
+        logger.info("Trade processing task has terminated")
