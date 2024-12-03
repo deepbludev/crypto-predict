@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.concurrency import asynccontextmanager
 from loguru import logger
 from trades.core.settings import trades_settings
-from trades.kraken import KrakenWebsocketAPI, process_trades
+from trades.kraken import KrakenWebsocketAPI, process_kraken_trades
 
 app = FastAPI()
 
@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
     await kraken_client.connect()
 
     # 2. Start the background task to process trades and store it in app.state
-    trade_task = asyncio.create_task(process_trades(kraken_client))
+    trade_task = asyncio.create_task(process_kraken_trades(kraken_client))
 
     yield
 

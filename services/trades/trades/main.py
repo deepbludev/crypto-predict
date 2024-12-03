@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from loguru import logger
 from quixstreams import Application as QuixApp
 from trades.core.settings import trades_settings
-from trades.kraken import KrakenWebsocketAPI, process_trades
+from trades.kraken import KrakenWebsocketAPI, process_kraken_trades
 
 
 @asynccontextmanager
@@ -32,9 +32,9 @@ async def startup(app: FastAPI):
     kraken_client = KrakenWebsocketAPI(settings.symbols)
     await kraken_client.connect()
 
-    # Start the background task to process trades
+    # 3. Start the background task to process trades
     trade_task = asyncio.create_task(
-        process_trades(kraken_client, messagebus, topic_name=settings.topic)
+        process_kraken_trades(kraken_client, messagebus, topic_name=settings.topic)
     )
 
     return kraken_client, trade_task

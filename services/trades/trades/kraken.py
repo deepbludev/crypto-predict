@@ -97,13 +97,13 @@ class KrakenWebsocketAPI:
                 continue
 
 
-async def process_trades(
+async def process_kraken_trades(
     kraken: KrakenWebsocketAPI,
     messagebus: QuixApp,
     topic_name: str,
 ):
     """
-    Background task that processes trades from the websocket connection.
+    Background task that processes Krakentrades.
     It uses the Kraken websocket API to get the trades and the Quix messagebus
     to produce them.
     """
