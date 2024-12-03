@@ -10,6 +10,9 @@ from trades.kraken import KrakenWebsocketAPI, process_trades
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """
+    Handles the lifespan of the FastAPI app.
+    """
     kraken_client, trade_task = await startup(app)
     yield
     await shutdown(kraken_client, trade_task)
@@ -20,13 +23,14 @@ async def startup(app: FastAPI):
     Handles the startup of the Kraken websocket connection
     and the background task to process trades.
     """
-    # Connect to the Kraken websocket
     settings = trades_settings()
+
+    # 1. Connect to the messagebus
+    messagebus = QuixApp(broker_address=settings.broker_address)
+
+    # 2. Connect to the Kraken websocket
     kraken_client = KrakenWebsocketAPI(settings.symbols)
     await kraken_client.connect()
-
-    # Connect to the messagebus
-    messagebus = QuixApp(broker_address=settings.broker_address)
 
     # Start the background task to process trades
     trade_task = asyncio.create_task(
