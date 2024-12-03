@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from loguru import logger
+from quixstreams import Application as QuixApp
 from trades.core.settings import trades_settings
 from trades.kraken import KrakenWebsocketAPI, process_trades
 
@@ -24,8 +25,13 @@ async def startup(app: FastAPI):
     kraken_client = KrakenWebsocketAPI(settings.symbols)
     await kraken_client.connect()
 
+    # Connect to the messagebus
+    messagebus = QuixApp(broker_address=settings.broker_address)
+
     # Start the background task to process trades
-    trade_task = asyncio.create_task(process_trades(kraken_client))
+    trade_task = asyncio.create_task(
+        process_trades(kraken_client, messagebus, topic_name=settings.topic)
+    )
 
     return kraken_client, trade_task
 
@@ -35,7 +41,6 @@ async def shutdown(kraken_client: KrakenWebsocketAPI, trade_task: asyncio.Task[N
     Handles the shutdown of the Kraken websocket connection
     and the background task to process trades.
     """
-    # Shutdown:
     # 1. Close the Kraken websocket connection
     if kraken_client.ws:
         await kraken_client.ws.close()

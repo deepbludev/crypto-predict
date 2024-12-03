@@ -10,6 +10,7 @@ from typing import Any, AsyncIterator
 import websockets
 from loguru import logger
 from pydantic import BaseModel, Field, ValidationError
+from quixstreams import Application as QuixApp
 from trades.trade import Trade
 from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
 
@@ -96,14 +97,22 @@ class KrakenWebsocketAPI:
                 continue
 
 
-async def process_trades(kraken_client: KrakenWebsocketAPI):
+async def process_trades(
+    kraken: KrakenWebsocketAPI, messagebus: QuixApp, topic_name: str
+):
     """
     Background task that processes trades from the websocket connection.
     """
+    topic = messagebus.topic(name=topic_name, value_serializer="json")
     try:
-        async for trade in kraken_client.get_trades():
-            logger.info(trade)
-            # TODO: send trade to messagebus
+        with messagebus.get_producer() as producer:
+            async for trade in kraken.get_trades():
+                message = topic.serialize(
+                    key=trade.pair,
+                    value=trade.serialize(),
+                )
+                producer.produce(topic=topic.name, value=message.value, key=message.key)
+                logger.info(f"Produced trade: {trade}")
 
     except asyncio.CancelledError:
         logger.info("Trade processing task was cancelled")
