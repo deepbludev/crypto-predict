@@ -45,32 +45,32 @@ class KrakenWebsocketAPI:
         Establishes the websocket connection and subscribes to trades.
         """
         self.ws = await websockets.connect(self._url)
-        await self._subscribe()
+        ws = self.check_connection()
 
-    async def _subscribe(self):
-        """
-        Subscribes to the websocket and waits for the initial snapshot.
-        """
         subscribe_msg = dict(
             method="subscribe",
             params=dict(channel="trade", symbol=self.symbols, snapshot=True),
         )
-        if not self.ws:
-            raise RuntimeError("Websocket not connected. Call connect() first.")
+        await ws.send(json.dumps(subscribe_msg))
 
-        await self.ws.send(json.dumps(subscribe_msg))
+    def check_connection(self):
+        """
+        Checks if the websocket connection is established,
+        raising a RuntimeError if it is not.
+        """
+        if self.ws is None:
+            raise RuntimeError("Websocket not connected. Call connect() first.")
+        return self.ws
 
     async def get_trades(self) -> AsyncIterator[Trade]:
         """
         Receives messages from the websocket and yields Trade objects.
         If the message is not a trade message or is malformed, it skips it.
         """
-        if not self.ws:
-            raise RuntimeError("Websocket not connected. Call connect() first.")
-
+        ws = self.check_connection()
         while True:
             try:
-                message = await self.ws.recv()
+                message = await ws.recv()
                 response = json.loads(message)
 
                 if not is_trade(response):
@@ -112,7 +112,7 @@ async def process_trades(
                     value=trade.serialize(),
                 )
                 producer.produce(topic=topic.name, value=message.value, key=message.key)
-                logger.info(f"Produced trade: {trade}")
+                logger.info(f"Produced trade: {trade.pair} {trade.price}")
 
     except asyncio.CancelledError:
         logger.info("Trade processing task was cancelled")
