@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from loguru import logger
 from quixstreams import Application as QuixApp
+
 from trades.core.settings import trades_settings
 from trades.kraken import KrakenWebsocketAPI, process_kraken_trades
 
