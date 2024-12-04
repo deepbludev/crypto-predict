@@ -72,7 +72,6 @@ class KrakenWebsocketAPI:
             try:
                 message = await ws.recv()
                 response = json.loads(message)
-
                 if not is_trade(response):
                     continue
 

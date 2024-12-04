@@ -1,11 +1,42 @@
-version: '3.7'
-name: cryptopredict-messagebus
+# Docker Compose file for the Cryptopredict project
+#
+# This file is used to run the Cryptopredict project in Docker containers
+# for development purposes.
+
+name: cryptopredict-dev
+
 networks:
-  redpanda_network:
+  cryptopredict-network:
     driver: bridge
+    
 volumes:
   redpanda: null
+
+
 services:
+  ####################################
+  # --- Trades service
+  ####################################
+  trades:
+    container_name: trades
+    depends_on:
+      - redpanda
+    build:
+      context: services/trades
+      dockerfile: Dockerfile
+    command: fastapi dev app/trades
+    environment:
+      - TRADES_BROKER_ADDRESS=redpanda:9092
+    ports:
+      - 8001:8000
+    restart: always
+    networks:
+      - cryptopredict-network
+
+  ####################################
+  # --- Messagebus
+  ####################################
+
   redpanda:
     image: docker.redpanda.com/redpandadata/redpanda:v23.2.21
     container_name: messagebus-redpanda
@@ -36,7 +67,7 @@ services:
     volumes:
       - redpanda:/var/lib/redpanda/data
     networks:
-      - redpanda_network
+      - cryptopredict-network
     healthcheck:
       test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true' || exit 1"]
       interval: 15s
@@ -69,6 +100,6 @@ services:
     ports:
       - 8080:8080
     networks:
-      - redpanda_network
+      - cryptopredict-network
     depends_on:
       - redpanda

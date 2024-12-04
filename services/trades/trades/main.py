@@ -18,6 +18,17 @@ async def lifespan(app: FastAPI):
     await shutdown(kraken_client, trade_task)
 
 
+app = FastAPI(lifespan=lifespan)
+
+
+@app.get("/health")
+async def health_check():
+    """
+    Simple health check endpoint.
+    """
+    return {"status": "OK"}
+
+
 async def startup(app: FastAPI):
     """
     Handles the startup of the Kraken websocket connection
@@ -34,7 +45,11 @@ async def startup(app: FastAPI):
 
     # 3. Start the background task to process trades
     trade_task = asyncio.create_task(
-        process_kraken_trades(kraken_client, messagebus, topic_name=settings.topic)
+        process_kraken_trades(
+            kraken_client,
+            messagebus,
+            topic_name=settings.topic,
+        )
     )
 
     return kraken_client, trade_task
@@ -55,14 +70,3 @@ async def shutdown(kraken_client: KrakenWebsocketAPI, trade_task: asyncio.Task[N
         await trade_task
     except asyncio.CancelledError:
         logger.info("Trade processing task was cancelled")
-
-
-app = FastAPI(lifespan=lifespan)
-
-
-@app.get("/health")
-async def health_check():
-    """
-    Simple health check endpoint.
-    """
-    return {"status": "OK"}

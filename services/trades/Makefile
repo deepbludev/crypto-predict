@@ -1,9 +1,13 @@
 # Run Trades service
 run:
-	uvicorn trades.main:app --port 8000 --host 0.0.0.0
+	fastapi run trades
 
 dev:
-	uvicorn trades.main:app --port 8000 --host 0.0.0.0 --reload
+	fastapi dev trades
+
+# Run docker image
+build:
+	docker build -f Dockerfile -t cryptopredict-trades .
 
 # Run linter
 lint:
