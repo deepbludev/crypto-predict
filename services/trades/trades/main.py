@@ -4,7 +4,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from loguru import logger
 from quixstreams import Application as QuixApp
-
 from trades.core.settings import trades_settings
 from trades.kraken import KrakenWebsocketAPI, process_kraken_trades
 
@@ -22,12 +21,12 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
-@app.get("/health")
+@app.get('/health')
 async def health_check():
     """
     Simple health check endpoint.
     """
-    return {"status": "OK"}
+    return {'status': 'OK'}
 
 
 async def startup(app: FastAPI):
@@ -70,4 +69,4 @@ async def shutdown(kraken_client: KrakenWebsocketAPI, trade_task: asyncio.Task[N
     try:
         await trade_task
     except asyncio.CancelledError:
-        logger.info("Trade processing task was cancelled")
+        logger.info('Trade processing task was cancelled')

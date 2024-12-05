@@ -14,17 +14,17 @@ volumes:
 
 
 services:
-  ####################################
+  # ----------------------------------------
   # --- Trades service
-  ####################################
+  # ----------------------------------------
   trades:
     container_name: trades
     depends_on:
       - redpanda
     build:
-      context: services/trades
+      context: .
       dockerfile: Dockerfile
-    command: fastapi dev app/trades
+    command: fastapi dev app/services/trades/trades
     environment:
       - TRADES_BROKER_ADDRESS=redpanda:9092
     ports:
@@ -32,11 +32,12 @@ services:
     restart: always
     networks:
       - cryptopredict-network
-
-  ####################################
+    # volumes:
+    #   - .:/app
+    
+  # ----------------------------------------
   # --- Messagebus
-  ####################################
-
+  # ----------------------------------------
   redpanda:
     image: docker.redpanda.com/redpandadata/redpanda:v23.2.21
     container_name: messagebus-redpanda

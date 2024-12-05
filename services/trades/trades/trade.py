@@ -15,7 +15,7 @@ class Trade(BaseModel):
     timestamp: datetime
     timestamp_ms: int = 0
 
-    @model_validator(mode="after")
+    @model_validator(mode='after')
     def set_timestamp_in_ms_from_iso_datetime(self) -> Self:
         self.timestamp_ms = int(self.timestamp.timestamp() * 1000)
         return self
