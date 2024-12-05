@@ -11,9 +11,8 @@ import websockets
 from loguru import logger
 from pydantic import BaseModel, Field, ValidationError
 from quixstreams import Application as QuixApp
-from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
-
 from trades.trade import Trade
+from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
 
 
 class KrakenTrade(BaseModel):

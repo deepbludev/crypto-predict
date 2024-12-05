@@ -1,9 +1,9 @@
 # Run Trades service
 run:
-	fastapi run trades
+	uv run fastapi run trades
 
 dev:
-	fastapi dev trades
+	uv run fastapi dev trades
 
 # Run docker image
 build:

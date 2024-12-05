@@ -32,16 +32,12 @@ target-version = "py312"
 
 [lint]
 select = [
-  "E4",
-  "E7",
-  "E9",
-  "F",
-  "C",  # mccabe rules
-  "F",  # pyflakes rules
-  "E",  # pycodestyle error rules
-  "W",  # pycodestyle warning rules
-  "B",  # flake8-bugbear rules
-  "I",  # isort rules
+  "F", # pyflakes rules
+  "C", # mccabe rules
+  "E", # pycodestyle error rules
+  "W", # pycodestyle warning rules
+  "B", # flake8-bugbear rules
+
 ]
 ignore = []
 fixable = ["ALL"]
