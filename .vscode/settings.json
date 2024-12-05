@@ -1,14 +1,14 @@
 {
-  "editor.formatOnPaste": true,
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
-    "source.fixAll.ruff": "always",
-    "source.organizeImports.ruff": "always"
+    "source.fixAll.ruff": "explicit",
+    "source.organizeImports.ruff": "explicit",
+    "source.organizeImports": "never",
+    "source.fixAll": "never"
   },
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff"
   },
-  "ruff.importStrategy": "useBundled",
   "ruff.lint.run": "onSave",
   "ruff.organizeImports": false,
   "ruff.fixAll": true,
@@ -17,8 +17,8 @@
   "python.analysis.indexing": true,
   "python.analysis.autoSearchPaths": true,
   "python.analysis.extraPaths": [
-    "./amalfi",
-    "./examples"
+    "./services",
+    "./libs"
   ],
   "python.languageServer": "Pylance"
 }

@@ -24,3 +24,39 @@ trades = { workspace = true }
 
 [tool.uv.workspace]
 members = ["services/*"]
+
+
+[tool.ruff]
+# General Ruff settings
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+  "F", # pyflakes rules
+  "C", # mccabe rules
+  "E", # pycodestyle error rules
+  "W", # pycodestyle warning rules
+  "B", # flake8-bugbear rules
+  "I", # isort rules
+]
+ignore = []
+
+# Allow autofix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.mccabe]
+# Unlike Flake8, default to a complexity level of 10.
+max-complexity = 10
+
+[tool.ruff.lint.isort]
+known-first-party = ["trades"]
+
+# You can keep your existing exclude list here
+[tool.ruff.lint.per-file-ignores]
+# Example: Ignore specific rules for specific files
+# "__init__.py" = ["E402"]

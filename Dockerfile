@@ -45,4 +45,4 @@ ARG SERVICE_NAME
 ENV SERVICE_NAME=${SERVICE_NAME}
 
 # Run the FastAPI application in production mode
-CMD "fastapi run app/services/${SERVICE_NAME}/${SERVICE_NAME}"
+CMD ["fastapi", "run", "app/services/${SERVICE_NAME}/${SERVICE_NAME}"]
