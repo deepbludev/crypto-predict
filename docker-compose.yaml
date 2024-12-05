@@ -12,7 +12,6 @@ networks:
 volumes:
   redpanda: null
 
-
 services:
   # ----------------------------------------
   # --- Trades service
@@ -23,7 +22,9 @@ services:
       - redpanda
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: .docker/Dockerfile
+      args:
+        SERVICE_NAME: trades
     command: fastapi dev app/services/trades/trades
     environment:
       - TRADES_BROKER_ADDRESS=redpanda:9092
@@ -32,8 +33,7 @@ services:
     restart: always
     networks:
       - cryptopredict-network
-    # volumes:
-    #   - .:/app
+
     
   # ----------------------------------------
   # --- Messagebus

@@ -28,6 +28,9 @@ COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
   uv sync --frozen --no-dev
 
+# Copy the entrypoint script
+RUN chmod +x /app/.docker/entrypoint.sh
+
 ## --- RUNNER
 # Then, use a final image without uv
 FROM python:3.12-slim-bookworm AS runner
@@ -37,12 +40,10 @@ COPY --from=builder --chown=app:app /app /app
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"
 
-ARG PORT
-ENV PORT=${PORT}
-EXPOSE ${PORT}
 
 ARG SERVICE_NAME
 ENV SERVICE_NAME=${SERVICE_NAME}
 
 # Run the FastAPI application in production mode
-CMD ["fastapi", "run", "app/services/${SERVICE_NAME}/${SERVICE_NAME}"]
+EXPOSE 8000
+ENTRYPOINT ["/app/.docker/entrypoint.sh"]
