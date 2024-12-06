@@ -44,10 +44,6 @@ COPY --from=builder --chown=app:app /app /app
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"
 
-
-ARG SERVICE_NAME
-ENV SERVICE_NAME=${SERVICE_NAME}
-
 # Run the FastAPI application in production mode
 EXPOSE 8000
 ENTRYPOINT ["/app/.docker/entrypoint.sh"]
