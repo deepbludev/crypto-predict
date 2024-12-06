@@ -16,20 +16,24 @@ WORKDIR /app
 # Copy in pyproject.toml, uv.lock, and services/trades
 COPY pyproject.toml uv.lock /app/
 COPY services/${SERVICE_NAME} /app/services/${SERVICE_NAME}
+# COPY services /app/services
 COPY libs /app/libs
 
 # Install the project's dependencies using the lockfile and settings
 RUN --mount=type=cache,target=/root/.cache/uv \
   uv sync --frozen --no-install-project --no-dev
 
-# Then, add the rest of the project source code and install it
-# Installing separately from its dependencies allows optimal layer caching
+# Add the rest of the project source code and install it
 COPY . /app
-RUN --mount=type=cache,target=/root/.cache/uv \
-  uv sync --frozen --no-dev
+RUN \
+  # Install it separately from its dependencies to allow optimal layer caching
+  --mount=type=cache,target=/root/.cache/uv \
+  uv sync --frozen --no-dev && \
+  # Delete services we don't need to build, all except the one we're building
+  rm -rf /app/services/*/ && \
+  # Copy the entrypoint script
+  chmod +x /app/.docker/entrypoint.sh
 
-# Copy the entrypoint script
-RUN chmod +x /app/.docker/entrypoint.sh
 
 ## --- RUNNER
 # Then, use a final image without uv
