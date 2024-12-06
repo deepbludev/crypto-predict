@@ -183,23 +183,18 @@ results/
 output*/
 model_cache/
 output*
-user_data.sh
 
-set_env_variables.sh
 logs/
 .DS_Store
-gradio_cached_examples
 trust_policy.json
 
 .TODOS
 ca.cert
 *.pkl
 **/state
-**/setup_credentials.sh
 *.csv
-**/credentials.env
+**/*.env
 .venv/
 certificates/
 *.parquet
 target/
-anthropic.env
