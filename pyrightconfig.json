@@ -1,0 +1,22 @@
+{
+  "include": [
+    "libs/**",
+    "services/**",
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__"
+  ],
+  "reportMissingTypeStubs": false,
+  "reportAttributeAccessIssue": true,
+  "reportUnknownMemberType": false,
+  "pythonVersion": "3.12",
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": [
+        "."
+      ]
+    }
+  ]
+}

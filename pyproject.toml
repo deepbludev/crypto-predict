@@ -5,6 +5,9 @@ requires-python = ">= 3.12"
 dependencies = [
   # services
   "trades",
+  "candles",
+  # libs
+  "domain",
   # python packages
   "fastapi[all]>=0.115.5",
   "loguru>=0.7.2",
@@ -13,23 +16,40 @@ dependencies = [
   "websockets>=14.1",
 ]
 
-[dependency-groups]
-ci = ["pyright>=1.1.389", "pytest>=8.3.4", "ruff>=0.8.1"]
-
 [tool.uv]
-dev-dependencies = []
+dev-dependencies = [
+    "pyright>=1.1.390",
+    "pytest>=8.3.4",
+    "ruff>=0.8.1",
+]
 
 [tool.uv.sources]
+# services
 trades = { workspace = true }
+candles = { workspace = true }
+# libs
+domain = { workspace = true }
 
 [tool.uv.workspace]
-members = ["services/*"]
+members = [
+  "services/*",
+  "libs/*",
+]
 
 
 [tool.ruff]
 # General Ruff settings
 line-length = 88
 target-version = "py312"
+
+[tool.ruff.lint.isort]
+known-first-party = [
+  # services
+  "trades",
+  "candles",
+  # libs
+  "domain", 
+]
 
 [tool.ruff.lint]
 select = [
@@ -53,8 +73,6 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 # Unlike Flake8, default to a complexity level of 10.
 max-complexity = 10
 
-[tool.ruff.lint.isort]
-known-first-party = ["trades"]
 
 # You can keep your existing exclude list here
 [tool.ruff.lint.per-file-ignores]

@@ -50,9 +50,13 @@ clean:
 run:
 ifeq ($(svc), trades)
 	uv run fastapi run services/trades/trades
+else ifeq ($(svc), candles)
+	uv run fastapi run services/candles/candles
 endif
 
 dev:
 ifeq ($(svc), trades)
 	uv run fastapi dev services/trades/trades
+else ifeq ($(svc), candles)
+	uv run fastapi dev services/candles/candles
 endif

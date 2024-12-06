@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field, ValidationError, field_serializer
 from quixstreams import Application as QuixApp
 from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
 
-from trades.trade import Symbol, Trade
+from domain.trades import Symbol, Trade
 
 
 class KrakenTrade(BaseModel):

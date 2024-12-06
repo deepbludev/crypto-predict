@@ -5,9 +5,9 @@ from fastapi import FastAPI
 from loguru import logger
 from quixstreams import Application as QuixApp
 
+from domain.trades import Symbol
 from trades.core.settings import trades_settings
 from trades.kraken import KrakenWebsocketAPI, process_kraken_trades
-from trades.trade import Symbol
 
 
 @asynccontextmanager
