@@ -17,7 +17,7 @@ WORKDIR /app
 # Copy in pyproject.toml, uv.lock 
 COPY pyproject.toml uv.lock /app/
 # Copy and services & libs to build the workspace
-COPY services/${SERVICE_NAME} /app/services/${SERVICE_NAME}
+COPY services /app/services
 COPY libs /app/libs
 
 # Install the project's dependencies using the lockfile and settings
@@ -29,6 +29,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
   uv sync --frozen --no-dev
+
+# Delete services we don't need to build, all except the one we're building
+RUN find /app/services -mindepth 1 -maxdepth 1 -type d ! -name "${SERVICE_NAME}" -exec rm -rf {} +
 
 # Copy the entrypoint script
 RUN chmod +x /app/.docker/entrypoint.sh
