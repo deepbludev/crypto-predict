@@ -7,6 +7,7 @@ from quixstreams import Application as QuixApp
 
 from trades.core.settings import trades_settings
 from trades.kraken import KrakenWebsocketAPI, process_kraken_trades
+from trades.trade import Symbol
 
 
 @asynccontextmanager
@@ -41,7 +42,7 @@ async def startup(app: FastAPI):
     messagebus = QuixApp(broker_address=settings.broker_address)
 
     # 2. Connect to the Kraken websocket
-    kraken_client = KrakenWebsocketAPI(settings.symbols)
+    kraken_client = KrakenWebsocketAPI(list(map(Symbol, settings.symbols)))
     await kraken_client.connect()
 
     # 3. Start the background task to process trades

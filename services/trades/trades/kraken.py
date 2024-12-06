@@ -9,11 +9,11 @@ from typing import Any, AsyncIterator
 
 import websockets
 from loguru import logger
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_serializer
 from quixstreams import Application as QuixApp
 from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
 
-from trades.trade import Trade
+from trades.trade import Symbol, Trade
 
 
 class KrakenTrade(BaseModel):
@@ -21,24 +21,45 @@ class KrakenTrade(BaseModel):
     Represents a trade snapshot from the Kraken API for a given symbol.
     """
 
-    symbol: str = Field(serialization_alias="pair")
+    symbol: str
     price: float
     qty: float = Field(serialization_alias="volume")
     timestamp: datetime
 
+    @field_serializer("symbol")
+    def remove_slash_from_symbol(self, symbol: str, _info: Any):
+        return Symbol(symbol.replace("/", ""))
+
+    @field_serializer("timestamp")
+    def timestamp_to_millis(self, dt: datetime, _info: Any):
+        return int(dt.timestamp() * 1000)
+
     def into(self) -> Trade:
         return Trade.model_validate(self.model_dump(by_alias=True))
+
+    @classmethod
+    def to_kraken_symbol(cls, symbol: Symbol) -> str:
+        """Adds a slash to the symbol to match the Kraken API format."""
+        return f"{symbol[:3]}/{symbol[3:]}"
 
 
 def is_trade(response: dict[str, Any]) -> bool:
     return response.get("channel") == "trade"
 
 
+def is_heartbeat(response: dict[str, Any]) -> bool:
+    return response.get("channel") == "heartbeat"
+
+
 class KrakenWebsocketAPI:
     _url = "wss://ws.kraken.com/v2"
 
-    def __init__(self, symbols: list[str]):
-        self.symbols = symbols
+    def __init__(self, symbols: list[Symbol]):
+        """
+        Initializes the Kraken websocket API with the given symbols,
+        converting them to the format expected by the Kraken API.
+        """
+        self.symbols = list(map(KrakenTrade.to_kraken_symbol, symbols))
         self.ws = None
 
     async def connect(self):
@@ -78,15 +99,18 @@ class KrakenWebsocketAPI:
                 message = await ws.recv()
                 response = json.loads(message)
                 if not is_trade(response):
+                    if is_heartbeat(response):
+                        logger.info("Received heartbeat from Kraken")
+                    else:
+                        logger.info("Received non-trade message from Kraken")
                     continue
 
                 trades = response.get("data", [])
                 for trade in trades:
                     try:
-                        kraken_trade = KrakenTrade.model_validate(trade)
-                        yield kraken_trade.into()
+                        yield KrakenTrade.model_validate(trade).into()
                     except ValidationError as e:
-                        logger.error(f"Error validating trade: {e}")
+                        logger.error(f"Error validating trade from Kraken: {e}")
 
             except ConnectionClosedOK:
                 # Normal closure
@@ -116,14 +140,14 @@ async def process_kraken_trades(
         with messagebus.get_producer() as producer:
             async for trade in kraken.stream_trades():
                 message = topic.serialize(
-                    key=trade.pair,
+                    key=trade.symbol,
                     value=trade.serialize(),
                 )
                 producer.produce(topic=topic.name, value=message.value, key=message.key)
-                logger.info(f"Produced trade: {trade.pair} {trade.price}")
+                logger.info(f"Produced trade (Kraken): {trade.symbol} {trade.price}")
 
     except asyncio.CancelledError:
-        logger.info("Trade processing task was cancelled")
+        logger.info("Trade processing task from Kraken was cancelled")
         raise
     except Exception as e:
         logger.error(f"Error processing trades: {e}")

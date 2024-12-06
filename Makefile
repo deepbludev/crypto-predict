@@ -1,10 +1,24 @@
+# ----------------------------------------
 # Infrastructure
+# ----------------------------------------
+build:
+	docker compose up --build -d
+
 up:
 	docker compose up -d
+
+down:
+	docker compose down
+
+stop:
+	docker compose stop
 
 messagebus-up:
 	docker compose up -d redpanda-console
 
+# ----------------------------------------
+# Development
+# ----------------------------------------
 # Run linter
 lint:
 	uv run ruff check .
@@ -30,7 +44,9 @@ clean:
 	find . -type d -name ".ruff_cache" -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
 
-## Trades service
+# ----------------------------------------
+# Services
+# ----------------------------------------
 run:
 ifeq ($(svc), trades)
 	uv run fastapi run services/trades/trades
