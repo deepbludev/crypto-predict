@@ -26,10 +26,12 @@ services:
       args:
         SERVICE_NAME: trades
     command: fastapi dev app/services/trades/trades
-    environment:
-      - TRADES_BROKER_ADDRESS=redpanda:9092
     ports:
       - 8001:8000
+    environment:
+      - TRADES_BROKER_ADDRESS=redpanda:9092
+    env_file:
+      - services/trades/.env
     restart: always
     networks:
       - cryptopredict-network
