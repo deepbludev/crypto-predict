@@ -1,9 +1,6 @@
 ## --- BUILDER
 FROM python:3.12-slim-bookworm AS builder
 
-ARG SERVICE_NAME
-ENV SERVICE_NAME=${SERVICE_NAME}
-
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 # Enable bytecode compilation
@@ -16,24 +13,30 @@ WORKDIR /app
 
 # Copy in pyproject.toml, uv.lock 
 COPY pyproject.toml uv.lock /app/
+
+# Get the service name from the build arg
+ARG SERVICE_NAME
+ENV SERVICE_NAME=${SERVICE_NAME}
+
 # Copy and services & libs to build the workspace
 COPY services /app/services
 COPY libs /app/libs
 
 # Install the project's dependencies using the lockfile and settings
+# only selecting the default dep groups and the specific service dep group
 RUN --mount=type=cache,target=/root/.cache/uv \
-  uv sync --frozen --no-install-project --no-dev
+  uv sync --frozen --no-dev --extra ${SERVICE_NAME} --no-install-project
 
-# Then, add the rest of the project source code and install it
-# Installing separately from its dependencies allows optimal layer caching
+# Add the rest of the project source code
 COPY . /app
+# Install project separately from its dependencies to optimize layer caching
 RUN --mount=type=cache,target=/root/.cache/uv \
-  uv sync --frozen --no-dev
+  uv sync --frozen --no-dev 
 
-# Delete services we don't need to build, all except the one we're building
-RUN find /app/services -mindepth 1 -maxdepth 1 -type d ! -name "${SERVICE_NAME}" -exec rm -rf {} +
+# Delete the rest of the services source code to optimize image size
+RUN find /app/services -mindepth 1 -maxdepth 1 -type d ! -name "${SERVICE_NAME}" -exec rm -rf {} + 
 
-# Copy the entrypoint script
+# Copy the entrypoint script and make it executable
 RUN chmod +x /app/.docker/entrypoint.sh
 
 ## --- RUNNER
@@ -44,7 +47,6 @@ FROM python:3.12-slim-bookworm AS runner
 COPY --from=builder --chown=app:app /app /app
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"
-
 
 ARG SERVICE_NAME
 ENV SERVICE_NAME=${SERVICE_NAME}
