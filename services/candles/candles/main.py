@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from loguru import logger
 
 from candles.core.settings import candles_settings
+from candles.stream import generate_candles_from_trades
 from domain.trades import Trade
 
 print(Trade)
@@ -32,7 +33,9 @@ async def health_check():
 async def startup(app: FastAPI):
     """Handles the startup of the messagebus connection."""
     settings = candles_settings()
-    messagebus = qs.Application(
+
+    # 1. Start the stream
+    stream_app = qs.Application(
         broker_address=settings.broker_address,
         consumer_group=settings.consumer_group,
     )
@@ -40,6 +43,9 @@ async def startup(app: FastAPI):
         f"Connected to messagebus at {settings.broker_address}, "
         f"consumer group: {settings.consumer_group}"
     )
+
+    # 2. Start the stream
+    generate_candles_from_trades(stream_app).run()
 
 
 async def shutdown():
