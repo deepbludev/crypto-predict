@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 import quixstreams as qs
@@ -5,7 +6,7 @@ from fastapi import FastAPI
 from loguru import logger
 
 from candles.core.settings import candles_settings
-from candles.stream import generate_candles_from_trades
+from candles.stream import run_stream
 
 
 @asynccontextmanager
@@ -13,9 +14,9 @@ async def lifespan(app: FastAPI):
     """
     Handles the lifespan of the FastAPI app.
     """
-    await startup(app)
+    stream_task = await startup(app)
     yield
-    await shutdown()
+    await shutdown(stream_task)
 
 
 app = FastAPI(lifespan=lifespan)
@@ -41,10 +42,19 @@ async def startup(app: FastAPI):
         f"consumer group: {settings.consumer_group}"
     )
 
-    # 2. Start the stream
-    generate_candles_from_trades(stream_app).run()
+    # 3. Start the stream as a background task
+    stream_task = asyncio.create_task(run_stream(stream_app))
+    return stream_task
 
 
-async def shutdown():
+async def shutdown(stream_task: asyncio.Task[None] | None = None):
     """Handles the shutdown of the messagebus connection."""
-    pass
+    if not stream_task:
+        return
+
+    # 1. Cancel the background task
+    stream_task.cancel()
+    try:
+        await stream_task
+    except asyncio.CancelledError:
+        logger.info("Candles processing task was cancelled")

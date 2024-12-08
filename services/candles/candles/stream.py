@@ -8,17 +8,10 @@ from domain.candles import Candle
 from domain.trades import Trade
 
 
-def extract_ts(
-    value: Any,
-    headers: list[tuple[str, bytes]] | None,
-    timestamp: float,
-    timestamp_type: qs.models.TimestampType,
-) -> int:
-    """
-    Specifying a custom timestamp extractor to use the timestamp from the message
-    payload instead of Kafka timestamp.
-    """
-    return value["timestamp"]
+async def run_stream(stream_app: qs.Application):
+    """Builds the stream and runs it."""
+    generate_candles_from_trades(stream_app)
+    stream_app.run()
 
 
 def generate_candles_from_trades(stream_app: qs.Application):
@@ -29,6 +22,19 @@ def generate_candles_from_trades(stream_app: qs.Application):
     given window size to the messagebus.
     """
     settings = candles_settings()
+
+    def extract_ts(
+        value: Any,
+        headers: list[tuple[str, bytes]] | None,
+        timestamp: float,
+        timestamp_type: qs.models.TimestampType,
+    ) -> int:
+        """
+        Specifying a custom timestamp extractor to use the timestamp from the message
+        payload instead of Kafka timestamp.
+        """
+        return value["timestamp"]
+
     (
         # 1. Read the trades from the messagebus
         stream_app.dataframe(

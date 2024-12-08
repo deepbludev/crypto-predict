@@ -35,8 +35,8 @@ async def startup(app: FastAPI):
     """
     settings = trades_settings()
 
-    # 1. Connect to the messagebus
-    messagebus = qs.Application(
+    # 1. Initialize the stream application
+    stream_app = qs.Application(
         broker_address=settings.broker_address,
         consumer_group=settings.consumer_group,
     )
@@ -49,11 +49,11 @@ async def startup(app: FastAPI):
     kraken_client = KrakenWebsocketAPI(settings.symbols)
     await kraken_client.connect()
 
-    # 3. Start the background task to process trades
+    # 3. Start the stream as a background task
     trade_task = asyncio.create_task(
         process_kraken_trades(
             kraken_client,
-            messagebus,
+            stream_app,
             topic_name=settings.topic,
         )
     )
