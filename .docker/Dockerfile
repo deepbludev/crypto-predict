@@ -1,6 +1,23 @@
 ## --- BUILDER
 FROM python:3.12-slim-bookworm AS builder
 
+RUN apt-get update && apt-get install -y \
+  gcc \
+  build-essential \
+  wget \
+  && rm -rf /var/lib/apt/lists/*
+
+# Install ta-lib
+RUN wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz && \
+  tar -xzf ta-lib-0.4.0-src.tar.gz && \
+  cd ta-lib/ && \
+  ./configure --prefix=/usr --build=aarch64-unknown-linux-gnu && \
+  make && \
+  make install && \
+  cd .. && \
+  rm -rf ta-lib*
+
+
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 # Enable bytecode compilation

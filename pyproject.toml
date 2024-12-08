@@ -19,10 +19,11 @@ shared = [
   "quixstreams>=3.3.0",
   "websockets>=14.1",
 ]
-
 trades = []
 candles = []
-ta = []
+ta = [
+    "ta-lib>=0.5.1",
+]
 domain = []
 
 [tool.uv]

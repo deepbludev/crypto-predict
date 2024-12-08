@@ -36,6 +36,7 @@ services:
     restart: always
     networks:
       - cryptopredict-network
+
   # ----------------------------------------
   # --- Candles service
   # ----------------------------------------
@@ -56,6 +57,30 @@ services:
       - CANDLES_BROKER_ADDRESS=redpanda:9092
     env_file:
       - services/candles/.env
+    restart: always
+    networks:
+      - cryptopredict-network
+
+  # ----------------------------------------
+  # --- TA service
+  # ----------------------------------------
+  ta:
+    container_name: ta
+    depends_on:
+      - redpanda
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile
+      args:
+        SERVICE_NAME: ta
+        PORT: 8003
+    command: fastapi dev app/services/ta/ta --port 8003
+    ports:
+      - 8003:8003
+    environment:
+      - TA_BROKER_ADDRESS=redpanda:9092
+    env_file:
+      - services/ta/.env
     restart: always
     networks:
       - cryptopredict-network
