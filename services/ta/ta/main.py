@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 import quixstreams as qs
@@ -5,7 +6,7 @@ from fastapi import FastAPI
 from loguru import logger
 
 from ta.core.settings import ta_settings
-from ta.stream import perform_ta_from_candles
+from ta.stream import run_stream
 
 
 @asynccontextmanager
@@ -13,9 +14,9 @@ async def lifespan(app: FastAPI):
     """
     Handles the lifespan of the FastAPI app.
     """
-    await startup(app)
+    stream_task = await startup(app)
     yield
-    await shutdown()
+    await shutdown(stream_task)
 
 
 app = FastAPI(lifespan=lifespan)
@@ -42,9 +43,14 @@ async def startup(app: FastAPI):
     )
 
     # 2. Start the stream
-    perform_ta_from_candles(stream_app).run()
+    stream_task = asyncio.create_task(run_stream(stream_app))
+    return stream_task
 
 
-async def shutdown():
+async def shutdown(stream_task: asyncio.Task[None]):
     """Handles the shutdown of the messagebus connection."""
-    pass
+    stream_task.cancel()
+    try:
+        await stream_task
+    except asyncio.CancelledError:
+        logger.info("Stream task was cancelled")

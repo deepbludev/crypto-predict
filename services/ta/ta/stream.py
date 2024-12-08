@@ -5,6 +5,12 @@ from domain.candles import Candle
 from ta.core.settings import ta_settings
 
 
+async def run_stream(stream_app: qs.Application):
+    """Builds the stream and runs it."""
+    perform_ta_from_candles(stream_app)
+    return stream_app.run()
+
+
 def perform_ta_from_candles(stream_app: qs.Application):
     """
     Generates technical indicators from candles.
