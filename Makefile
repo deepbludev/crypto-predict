@@ -52,6 +52,10 @@ ifeq ($(svc), trades)
 	uv run fastapi run services/trades/trades --port 8001
 else ifeq ($(svc), candles)
 	uv run fastapi run services/candles/candles --port 8002
+else ifeq ($(svc), ta)
+	uv run fastapi run services/ta/ta --port 8003
+else
+	@echo "Invalid service: $(svc)"
 endif
 
 dev:
@@ -59,4 +63,8 @@ ifeq ($(svc), trades)
 	uv run fastapi dev services/trades/trades --port 8001
 else ifeq ($(svc), candles)
 	uv run fastapi dev services/candles/candles --port 8002
+else ifeq ($(svc), ta)
+	uv run fastapi dev services/ta/ta --port 8003
+else
+	@echo "Invalid service: $(svc)"
 endif

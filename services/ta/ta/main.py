@@ -4,8 +4,8 @@ import quixstreams as qs
 from fastapi import FastAPI
 from loguru import logger
 
-from candles.core.settings import candles_settings
-from candles.stream import generate_candles_from_trades
+from ta.core.settings import ta_settings
+from ta.stream import perform_ta_from_candles
 
 
 @asynccontextmanager
@@ -29,7 +29,7 @@ async def health_check():
 
 async def startup(app: FastAPI):
     """Handles the startup of the messagebus connection."""
-    settings = candles_settings()
+    settings = ta_settings()
 
     # 1. Start the stream
     stream_app = qs.Application(
@@ -42,7 +42,7 @@ async def startup(app: FastAPI):
     )
 
     # 2. Start the stream
-    generate_candles_from_trades(stream_app).run()
+    perform_ta_from_candles(stream_app).run()
 
 
 async def shutdown():

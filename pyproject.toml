@@ -6,6 +6,7 @@ dependencies = [
   # services
   "trades",
   "candles",
+  "ta",
   # libs
   "domain",
 ]
@@ -21,6 +22,7 @@ shared = [
 
 trades = []
 candles = []
+ta = []
 domain = []
 
 [tool.uv]
@@ -35,6 +37,7 @@ dev-dependencies = [
 # services
 trades = { workspace = true }
 candles = { workspace = true }
+ta = { workspace = true }
 # libs
 domain = { workspace = true }
 
@@ -55,6 +58,7 @@ known-first-party = [
   # services
   "trades",
   "candles",
+  "ta",
   # libs
   "domain", 
 ]

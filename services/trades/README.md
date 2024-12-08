@@ -5,6 +5,7 @@ This service is responsible for ingesting trade data from a multiple crypto exch
 It currently supports only Kraken.
 
 ## How to run
+From the root of the project:
 
 ```bash
 # Run in dev mode (with hot reloading)
