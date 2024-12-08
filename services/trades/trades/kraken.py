@@ -13,7 +13,7 @@ from loguru import logger
 from pydantic import BaseModel, Field, ValidationError, field_serializer
 from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
 
-from domain.trades import Symbol, Trade
+from domain.trades import Exchange, Symbol, Trade
 
 
 class KrakenTrade(BaseModel):
@@ -35,7 +35,9 @@ class KrakenTrade(BaseModel):
         return int(dt.timestamp() * 1000)
 
     def into(self) -> Trade:
-        return Trade.model_validate(self.model_dump(by_alias=True))
+        return Trade.model_validate(
+            self.model_dump(by_alias=True) | {"exchange": Exchange.KRAKEN}
+        )
 
     @classmethod
     def to_kraken_symbol(cls, symbol: Symbol) -> str:
@@ -100,9 +102,11 @@ class KrakenWebsocketAPI:
                 response = json.loads(message)
                 if not is_trade(response):
                     if is_heartbeat(response):
-                        logger.info("Received heartbeat from Kraken")
+                        logger.info(f"Received heartbeat from {Exchange.KRAKEN.value}")
                     else:
-                        logger.info("Received non-trade message from Kraken")
+                        logger.info(
+                            f"Received non-trade message from {Exchange.KRAKEN.value}"
+                        )
                     continue
 
                 trades = response.get("data", [])
@@ -145,8 +149,9 @@ async def process_kraken_trades(
                 )
                 producer.produce(topic=topic.name, value=message.value, key=message.key)
                 logger.info(
-                    f"Produced trade (Kraken): {trade.symbol.value} at {trade.price} "
-                    f" on {datetime.fromtimestamp(trade.timestamp/1000)}"
+                    f"Produced trade from {trade.exchange.value}: "
+                    f"{trade.symbol.value} at {trade.price} "
+                    f"({datetime.fromtimestamp(trade.timestamp/1000)})"
                 )
 
     except asyncio.CancelledError:

@@ -3,6 +3,21 @@ from enum import Enum
 from domain.core import Schema
 
 
+class Exchange(str, Enum):
+    """Exchange Enum"""
+
+    KRAKEN = "KRAKEN"
+    BINANCE = "BINANCE"
+    BYBIT = "BYBIT"
+    BITMEX = "BITMEX"
+    BITFINEX = "BITFINEX"
+    BITGET = "BITGET"
+    BITSTAMP = "BITSTAMP"
+    BITTREX = "BITTREX"
+    COINBASE = "COINBASE"
+    GEMINI = "GEMINI"
+
+
 class Symbol(str, Enum):
     """Trade symbols Enum"""
 
@@ -33,3 +48,4 @@ class Trade(Schema):
     price: float
     volume: float
     timestamp: int
+    exchange: Exchange
