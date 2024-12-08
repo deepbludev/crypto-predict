@@ -57,7 +57,7 @@ async def shutdown(app: FastAPI):
     if stream_app := app.state.stream_app:
         try:
             stream_app.stop()
-            logger.info("Stream application stopped")
+            logger.info("Gracefully stopping the stream application")
         except Exception as e:
             logger.error(f"Error stopping stream application: {e}")
 
@@ -67,7 +67,9 @@ async def shutdown(app: FastAPI):
             stream_proc.terminate()
             stream_proc.join(timeout=10)
             if stream_proc.is_alive():
-                logger.warning("Stream process did not terminate within timeout")
-                stream_proc.kill()  # Force kill if it didn't terminate gracefully
+                logger.warning(
+                    "Stream process did not terminate within timeout. Forcing kill."
+                )
+                stream_proc.kill()
         except Exception as e:
             logger.error(f"Error cleaning up stream process: {e}")

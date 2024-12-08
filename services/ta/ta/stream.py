@@ -5,10 +5,16 @@ from domain.candles import Candle
 from ta.core.settings import ta_settings
 
 
-async def run_stream(stream_app: qs.Application):
+def run_stream(stream_app: qs.Application):
     """Builds the stream and runs it."""
     perform_ta_from_candles(stream_app)
-    return stream_app.run()
+
+    try:
+        stream_app.run()
+    except Exception as e:
+        logger.error(f"Error in Quix Streams thread: {e}")
+    finally:
+        logger.info("Stream application stopped")
 
 
 def perform_ta_from_candles(stream_app: qs.Application):

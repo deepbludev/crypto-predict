@@ -9,7 +9,7 @@ from domain.trades import Trade
 
 
 def run_stream(stream_app: qs.Application):
-    """Builds the stream and runs it in a separate thread."""
+    """Builds the stream and runs it."""
     generate_candles_from_trades(stream_app)
 
     try:
@@ -17,7 +17,7 @@ def run_stream(stream_app: qs.Application):
     except Exception as e:
         logger.error(f"Error in Quix Streams thread: {e}")
     finally:
-        logger.info("Quix Streams thread stopped")
+        logger.info("Stream application stopped")
 
 
 def generate_candles_from_trades(stream_app: qs.Application):
