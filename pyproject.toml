@@ -8,7 +8,10 @@ dependencies = [
   "candles",
   # libs
   "domain",
-  # python packages
+]
+
+[dependency-groups]
+shared = [
   "fastapi[all]>=0.115.5",
   "loguru>=0.7.2",
   "pydantic>=2.9.2",
@@ -16,7 +19,12 @@ dependencies = [
   "websockets>=14.1",
 ]
 
+trades = []
+candles = []
+domain = []
+
 [tool.uv]
+default-groups = ["shared"]
 dev-dependencies = [
     "pyright>=1.1.390",
     "pytest>=8.3.4",

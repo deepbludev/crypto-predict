@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Candles microservice"
 readme = "README.md"
 requires-python = ">=3.12"
+
 dependencies = []
 
 [build-system]
