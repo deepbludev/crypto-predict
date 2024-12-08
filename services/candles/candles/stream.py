@@ -15,8 +15,8 @@ def extract_ts(
     timestamp_type: qs.models.TimestampType,
 ) -> int:
     """
-    Specifying a custom timestamp extractor to use the timestamp from the message payload
-    instead of Kafka timestamp.
+    Specifying a custom timestamp extractor to use the timestamp from the message
+    payload instead of Kafka timestamp.
     """
     return value["timestamp"]
 
