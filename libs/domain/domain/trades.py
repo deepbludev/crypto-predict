@@ -26,7 +26,7 @@ class Trade(BaseModel):
     symbol: Symbol
     price: float
     volume: float
-    timestamp: int = 0
+    timestamp: int
 
     def serialize(self):
         """Serialize the trade to a dictionary."""

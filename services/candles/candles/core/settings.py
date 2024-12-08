@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     consumer_group: str = "candles"
     input_topic: str = "trades"
     output_topic: str = "candles"
-    window_size: CandleWindowSize = CandleWindowSize.WINDOW_1m
+    window_size: CandleWindowSize = CandleWindowSize.CANDLE_1m
 
 
 @lru_cache()
