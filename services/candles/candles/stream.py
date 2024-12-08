@@ -8,10 +8,16 @@ from domain.candles import Candle
 from domain.trades import Trade
 
 
-async def run_stream(stream_app: qs.Application):
-    """Builds the stream and runs it."""
+def run_stream(stream_app: qs.Application):
+    """Builds the stream and runs it in a separate thread."""
     generate_candles_from_trades(stream_app)
-    stream_app.run()
+
+    try:
+        stream_app.run()
+    except Exception as e:
+        logger.error(f"Error in Quix Streams thread: {e}")
+    finally:
+        logger.info("Quix Streams thread stopped")
 
 
 def generate_candles_from_trades(stream_app: qs.Application):
@@ -34,6 +40,8 @@ def generate_candles_from_trades(stream_app: qs.Application):
         payload instead of Kafka timestamp.
         """
         return value["timestamp"]
+
+    logger.info("Starting the candles stream")
 
     (
         # 1. Read the trades from the messagebus

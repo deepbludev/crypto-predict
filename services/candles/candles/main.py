@@ -1,5 +1,5 @@
-import asyncio
 from contextlib import asynccontextmanager
+from multiprocessing import Process
 
 import quixstreams as qs
 from fastapi import FastAPI
@@ -14,9 +14,9 @@ async def lifespan(app: FastAPI):
     """
     Handles the lifespan of the FastAPI app.
     """
-    stream_task = await startup(app)
+    await startup(app)
     yield
-    await shutdown(stream_task)
+    await shutdown(app)
 
 
 app = FastAPI(lifespan=lifespan)
@@ -32,8 +32,8 @@ async def startup(app: FastAPI):
     """Handles the startup of the messagebus connection."""
     settings = candles_settings()
 
-    # 1. Start the stream
-    stream_app = qs.Application(
+    # 1. Init the stream application
+    app.state.stream_app = qs.Application(
         broker_address=settings.broker_address,
         consumer_group=settings.consumer_group,
     )
@@ -42,19 +42,32 @@ async def startup(app: FastAPI):
         f"consumer group: {settings.consumer_group}"
     )
 
-    # 3. Start the stream as a background task
-    stream_task = asyncio.create_task(run_stream(stream_app))
-    return stream_task
+    # 2. Start the stream as a parallel process
+    app.state.stream_proc = Process(
+        target=run_stream,
+        args=(app.state.stream_app,),
+    )
+    app.state.stream_proc.start()
 
 
-async def shutdown(stream_task: asyncio.Task[None] | None = None):
+async def shutdown(app: FastAPI):
     """Handles the shutdown of the messagebus connection."""
-    if not stream_task:
-        return
 
-    # 1. Cancel the background task
-    stream_task.cancel()
-    try:
-        await stream_task
-    except asyncio.CancelledError:
-        logger.info("Candles processing task was cancelled")
+    # Stop the stream application
+    if stream_app := app.state.stream_app:
+        try:
+            stream_app.stop()
+            logger.info("Stream application stopped")
+        except Exception as e:
+            logger.error(f"Error stopping stream application: {e}")
+
+    # Wait for the process to finish
+    if stream_proc := app.state.stream_proc:
+        try:
+            stream_proc.terminate()
+            stream_proc.join(timeout=10)
+            if stream_proc.is_alive():
+                logger.warning("Stream process did not terminate within timeout")
+                stream_proc.kill()  # Force kill if it didn't terminate gracefully
+        except Exception as e:
+            logger.error(f"Error cleaning up stream process: {e}")
