@@ -2,6 +2,8 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from domain.trades import Symbol
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -12,8 +14,9 @@ class Settings(BaseSettings):
     )
 
     broker_address: str = "localhost:19092"
+    consumer_group: str = "trades"
     topic: str = "trades"
-    symbols: list[str] = ["XRPUSD"]
+    symbols: list[Symbol] = [Symbol.XRPUSD]
 
 
 @lru_cache()

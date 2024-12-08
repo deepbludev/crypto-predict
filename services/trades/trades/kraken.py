@@ -144,7 +144,10 @@ async def process_kraken_trades(
                     value=trade.serialize(),
                 )
                 producer.produce(topic=topic.name, value=message.value, key=message.key)
-                logger.info(f"Produced trade (Kraken): {trade.symbol} {trade.price}")
+                logger.info(
+                    f"Produced trade (Kraken): {trade.symbol.value} at {trade.price} "
+                    f" on {datetime.fromtimestamp(trade.timestamp/1000)}"
+                )
 
     except asyncio.CancelledError:
         logger.info("Trade processing task from Kraken was cancelled")

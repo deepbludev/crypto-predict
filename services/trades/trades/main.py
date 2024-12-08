@@ -1,11 +1,10 @@
 import asyncio
 from contextlib import asynccontextmanager
 
+import quixstreams as qs
 from fastapi import FastAPI
 from loguru import logger
-from quixstreams import Application as QuixApp
 
-from domain.trades import Symbol
 from trades.core.settings import trades_settings
 from trades.kraken import KrakenWebsocketAPI, process_kraken_trades
 
@@ -25,9 +24,7 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/health")
 async def health_check():
-    """
-    Simple health check endpoint.
-    """
+    """Health check endpoint."""
     return {"status": "OK"}
 
 
@@ -39,10 +36,17 @@ async def startup(app: FastAPI):
     settings = trades_settings()
 
     # 1. Connect to the messagebus
-    messagebus = QuixApp(broker_address=settings.broker_address)
+    messagebus = qs.Application(
+        broker_address=settings.broker_address,
+        consumer_group=settings.consumer_group,
+    )
+    logger.info(
+        f"Connected to messagebus at {settings.broker_address}, "
+        f"consumer group: {settings.consumer_group}"
+    )
 
     # 2. Connect to the Kraken websocket
-    kraken_client = KrakenWebsocketAPI(list(map(Symbol, settings.symbols)))
+    kraken_client = KrakenWebsocketAPI(settings.symbols)
     await kraken_client.connect()
 
     # 3. Start the background task to process trades
