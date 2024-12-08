@@ -2,19 +2,16 @@
 # Infrastructure
 # ----------------------------------------
 build:
-	docker compose up --build -d
+	docker compose up  --build -d $(svc)
 
 up:
-	docker compose up -d
+	docker compose up -d $(svc)
 
 down:
-	docker compose down
+	docker compose down $(svc)
 
 stop:
-	docker compose stop
-
-messagebus-up:
-	docker compose up -d redpanda-console
+	docker compose stop $(svc)
 
 # ----------------------------------------
 # Development
@@ -47,24 +44,22 @@ clean:
 # ----------------------------------------
 # Services
 # ----------------------------------------
+SERVICES = trades candles ta
+SERVICES_PATH = services/$(svc)/$(svc)
+PORTS = trades=8001 candles=8002 ta=8003
+# Get the port for a service from the PORTS variable
+port_for_service = $(word 2,$(subst =, ,$(filter $(1)=%,$(PORTS))))
+
 run:
-ifeq ($(svc), trades)
-	uv run fastapi run services/trades/trades --port 8001
-else ifeq ($(svc), candles)
-	uv run fastapi run services/candles/candles --port 8002
-else ifeq ($(svc), ta)
-	uv run fastapi run services/ta/ta --port 8003
+ifeq ($(filter $(svc),$(SERVICES)),$(svc))
+	uv run fastapi run $(SERVICES_PATH) --port $(call port_for_service,$(svc))
 else
 	@echo "Invalid service: $(svc)"
 endif
 
 dev:
-ifeq ($(svc), trades)
-	uv run fastapi dev services/trades/trades --port 8001
-else ifeq ($(svc), candles)
-	uv run fastapi dev services/candles/candles --port 8002
-else ifeq ($(svc), ta)
-	uv run fastapi dev services/ta/ta --port 8003
+ifeq ($(filter $(svc),$(SERVICES)),$(svc))
+	uv run fastapi dev $(SERVICES_PATH) --port $(call port_for_service,$(svc))
 else
 	@echo "Invalid service: $(svc)"
 endif
