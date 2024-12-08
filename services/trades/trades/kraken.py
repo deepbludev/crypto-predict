@@ -131,7 +131,7 @@ class KrakenWebsocketAPI:
 
 async def process_kraken_trades(
     kraken: KrakenWebsocketAPI,
-    messagebus: qs.Application,
+    stream_app: qs.Application,
     topic_name: str,
 ):
     """
@@ -139,9 +139,9 @@ async def process_kraken_trades(
     It uses the Kraken websocket API to get the trades and the Quix messagebus
     to produce them.
     """
-    topic = messagebus.topic(name=topic_name, value_serializer="json")
+    topic = stream_app.topic(name=topic_name, value_serializer="json")
     try:
-        with messagebus.get_producer() as producer:
+        with stream_app.get_producer() as producer:
             async for trade in kraken.stream_trades():
                 message = topic.serialize(
                     key=trade.symbol,

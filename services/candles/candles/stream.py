@@ -13,6 +13,7 @@ def run_stream(stream_app: qs.Application):
     generate_candles_from_trades(stream_app)
 
     try:
+        logger.info("Starting the candles stream")
         stream_app.run()
     except Exception as e:
         logger.error(f"Error in Quix Streams thread: {e}")
@@ -40,8 +41,6 @@ def generate_candles_from_trades(stream_app: qs.Application):
         payload instead of Kafka timestamp.
         """
         return value["timestamp"]
-
-    logger.info("Starting the candles stream")
 
     (
         # 1. Read the trades from the messagebus

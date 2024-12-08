@@ -10,6 +10,7 @@ def run_stream(stream_app: qs.Application):
     perform_ta_from_candles(stream_app)
 
     try:
+        logger.info("Starting the TA stream")
         stream_app.run()
     except Exception as e:
         logger.error(f"Error in Quix Streams thread: {e}")
