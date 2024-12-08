@@ -1,18 +1,24 @@
 from enum import Enum
 
-from pydantic import BaseModel
+from domain.core import Schema
 
 
 class Symbol(str, Enum):
     """Trade symbols Enum"""
 
+    # Crypto / USD
     XRPUSD = "XRPUSD"
     XLMUSD = "XLMUSD"
     BTCUSD = "BTCUSD"
     ETHUSD = "ETHUSD"
+    # Crypto / EUR
+    BTCEUR = "BTCEUR"
+    XRPEUR = "XRPEUR"
+    XLMEUR = "XLMEUR"
+    ETHEUR = "ETHEUR"
 
 
-class Trade(BaseModel):
+class Trade(Schema):
     """
     Represents a trade from a crypto exchange.
 
@@ -27,7 +33,3 @@ class Trade(BaseModel):
     price: float
     volume: float
     timestamp: int
-
-    def serialize(self):
-        """Serialize the trade to a dictionary."""
-        return self.model_dump()

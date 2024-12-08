@@ -3,8 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Self
 
-from pydantic import BaseModel
-
+from domain.core import Schema
 from domain.trades import Symbol, Trade
 
 
@@ -21,8 +20,30 @@ class CandleWindowSize(str, Enum):
     CANDLE_1W = "1W"
     CANDLE_1M = "1M"
 
+    def to_sec(self) -> int:
+        """Convert the window size to seconds."""
+        match self:
+            case CandleWindowSize.CANDLE_1m:
+                return 60 * 1
+            case CandleWindowSize.CANDLE_5m:
+                return 60 * 5
+            case CandleWindowSize.CANDLE_15m:
+                return 60 * 15
+            case CandleWindowSize.CANDLE_30m:
+                return 60 * 30
+            case CandleWindowSize.CANDLE_1h:
+                return 60 * 60 * 1
+            case CandleWindowSize.CANDLE_4h:
+                return 60 * 60 * 4
+            case CandleWindowSize.CANDLE_1D:
+                return 60 * 60 * 24
+            case CandleWindowSize.CANDLE_1W:
+                return 60 * 60 * 24 * 7
+            case CandleWindowSize.CANDLE_1M:
+                return 60 * 60 * 24 * 30
 
-class Candle(BaseModel):
+
+class Candle(Schema):
     """
     Represents an OHLC candle.
 
@@ -35,6 +56,8 @@ class Candle(BaseModel):
         close: The close price of the candle.
         volume: The volume of the candle.
         timestamp: The timestamp of the candle in milliseconds.
+        start: The start timestamp of the candle window in milliseconds.
+        end: The end timestamp of the candle window in milliseconds.
     """
 
     symbol: Symbol
@@ -45,6 +68,8 @@ class Candle(BaseModel):
     close: float
     volume: float
     timestamp: int
+    start: int | None = None
+    end: int | None = None
 
     @classmethod
     def init(cls, window_size: CandleWindowSize, first_trade: Trade) -> Self:
@@ -58,6 +83,7 @@ class Candle(BaseModel):
         Returns:
             A newly initialized candle.
         """
+
         return cls(
             symbol=first_trade.symbol,
             window_size=window_size,
@@ -68,6 +94,12 @@ class Candle(BaseModel):
             volume=first_trade.volume,
             timestamp=first_trade.timestamp,
         )
+
+    def close_window(self, start: int, end: int) -> Self:
+        """Close the candle with the given start and end timestamps."""
+        self.start = start
+        self.end = end
+        return self
 
     def update(self, trade: Trade) -> Self:
         """

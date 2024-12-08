@@ -7,10 +7,10 @@ import json
 from datetime import datetime
 from typing import Any, AsyncIterator
 
+import quixstreams as qs
 import websockets
 from loguru import logger
 from pydantic import BaseModel, Field, ValidationError, field_serializer
-from quixstreams import Application as QuixApp
 from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
 
 from domain.trades import Symbol, Trade
@@ -127,7 +127,7 @@ class KrakenWebsocketAPI:
 
 async def process_kraken_trades(
     kraken: KrakenWebsocketAPI,
-    messagebus: QuixApp,
+    messagebus: qs.Application,
     topic_name: str,
 ):
     """
@@ -141,7 +141,7 @@ async def process_kraken_trades(
             async for trade in kraken.stream_trades():
                 message = topic.serialize(
                     key=trade.symbol,
-                    value=trade.serialize(),
+                    value=trade.unpack(),
                 )
                 producer.produce(topic=topic.name, value=message.value, key=message.key)
                 logger.info(
