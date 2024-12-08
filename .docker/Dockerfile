@@ -51,6 +51,9 @@ ENV PATH="/app/.venv/bin:$PATH"
 ARG SERVICE_NAME
 ENV SERVICE_NAME=${SERVICE_NAME}
 
+ARG PORT
+ENV PORT=${PORT}
+
 # Run the FastAPI application in production mode
-EXPOSE 8000
+EXPOSE ${PORT}
 ENTRYPOINT ["/app/.docker/entrypoint.sh"]

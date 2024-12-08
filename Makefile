@@ -49,14 +49,14 @@ clean:
 # ----------------------------------------
 run:
 ifeq ($(svc), trades)
-	uv run fastapi run services/trades/trades
+	uv run fastapi run services/trades/trades --port 8001
 else ifeq ($(svc), candles)
-	uv run fastapi run services/candles/candles
+	uv run fastapi run services/candles/candles --port 8002
 endif
 
 dev:
 ifeq ($(svc), trades)
-	uv run fastapi dev services/trades/trades
+	uv run fastapi dev services/trades/trades --port 8001
 else ifeq ($(svc), candles)
-	uv run fastapi dev services/candles/candles
+	uv run fastapi dev services/candles/candles --port 8002
 endif

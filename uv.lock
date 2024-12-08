@@ -45,12 +45,8 @@ wheels = [
 name = "candles"
 version = "0.1.0"
 source = { editable = "services/candles" }
-dependencies = [
-    { name = "domain" },
-]
 
 [package.metadata]
-requires-dist = [{ name = "domain", editable = "libs/domain" }]
 
 [package.metadata.requires-dev]
 dev = []
@@ -169,11 +165,13 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+candles = []
 dev = [
     { name = "pyright", specifier = ">=1.1.390" },
     { name = "pytest", specifier = ">=8.3.4" },
     { name = "ruff", specifier = ">=0.8.1" },
 ]
+domain = []
 shared = [
     { name = "fastapi", extras = ["all"], specifier = ">=0.115.5" },
     { name = "loguru", specifier = ">=0.7.2" },
@@ -181,6 +179,7 @@ shared = [
     { name = "quixstreams", specifier = ">=3.3.0" },
     { name = "websockets", specifier = ">=14.1" },
 ]
+trades = []
 
 [[package]]
 name = "dnspython"
@@ -894,12 +893,8 @@ wheels = [
 name = "trades"
 version = "0.1.0"
 source = { editable = "services/trades" }
-dependencies = [
-    { name = "domain" },
-]
 
 [package.metadata]
-requires-dist = [{ name = "domain", editable = "libs/domain" }]
 
 [package.metadata.requires-dev]
 dev = []
