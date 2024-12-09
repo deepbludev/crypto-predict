@@ -112,11 +112,41 @@ class BBANDS(Schema):
         )
 
 
+class STOCHRSI(Schema):
+    """
+    Stochastic Relative Strength Index (STOCHRSI).
+
+    It includes the fastk and fastd. The defaults are
+    14 days, 5 fastk period, 3 fastd period and fastd moving average type simple.
+    """
+
+    stochrsi_fastk: float
+    stochrsi_fastd: float
+
+    @staticmethod
+    def calc_stochrsi(
+        close: NDFloats,
+        period: int = 14,
+        fastk_period: int = 5,
+        fastd_period: int = 3,
+        fastd_matype: int = 0,
+    ) -> STOCHRSI:
+        stochrsi_fastk, stochrsi_fastd = stream.STOCHRSI(
+            close,
+            period,
+            fastk_period,
+            fastd_period,
+            fastd_matype,
+        )
+        return STOCHRSI(stochrsi_fastk=stochrsi_fastk, stochrsi_fastd=stochrsi_fastd)
+
+
 class TechnicalAnalysis(
     CandleProps,
     RSI,
     MACD,
     BBANDS,
+    STOCHRSI,
 ):
     """Technical analysis of a candle.
     It includes the candle properties and the following technical indicators:
@@ -124,6 +154,8 @@ class TechnicalAnalysis(
     - Relative Strength Index (RSI at 9, 14, 21, 28 days)
     - Moving Average Convergence Divergence (MACD at 12, 26, 9 days)
     - Bollinger Bands (BBANDS at 20 days, stddev 2, moving average type simple)
+    - Stochastic Relative Strength Index (STOCHRSI at 10 days, 5 fastk period,
+    3 fastd period, fastd moving average type simple)
 
     """
 
@@ -151,4 +183,5 @@ class TechnicalAnalysis(
             **cls.calc_rsi(close).unpack(),
             **cls.calc_macd(close).unpack(),
             **cls.calc_bbands(close).unpack(),
+            **cls.calc_stochrsi(close, period=10).unpack(),
         )
