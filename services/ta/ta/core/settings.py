@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     )
 
     broker_address: str = "localhost:19092"
-    consumer_group: str = "ta"
+    consumer_group: str = "ta_consumer_group"
     input_topic: str = "candles"
     output_topic: str = "ta"
     candle_window_size: CandleWindowSize = CandleWindowSize.CANDLE_1m

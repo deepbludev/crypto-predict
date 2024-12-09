@@ -48,7 +48,7 @@ def perform_ta_from_candles(stream_app: qs.Application):
         )
         # 4. Produce the technical indicators to the output topic
         .to_topic(
-            stream_app.topic(
+            topic=stream_app.topic(
                 name=settings.output_topic + "_debug",  # TODO: Remove debug
                 value_serializer="json",
             )

@@ -10,6 +10,7 @@ from domain.trades import Trade
 
 def run_stream(stream_app: qs.Application):
     """Builds the stream and runs it."""
+
     generate_candles_from_trades(stream_app)
 
     try:
@@ -71,10 +72,10 @@ def generate_candles_from_trades(stream_app: qs.Application):
         )
         # 6. Produce the candle to the output topic
         .to_topic(
-            stream_app.topic(
+            topic=stream_app.topic(
                 name=settings.output_topic,
                 value_serializer="json",
-            )
+            ),
         )
         # 7. Log the produced candle
         .update(lambda candle: logger.info(f"Produced candle: {candle}"))
