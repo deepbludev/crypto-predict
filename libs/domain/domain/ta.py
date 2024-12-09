@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-from typing import Iterable, Self
+from typing import Any, Iterable, Self
 
 import numpy as np
+from numpy.typing import NDArray
 from talib import stream
 
 from domain.candles import CandleProps
-from domain.core import NDFloats, Schema
+from domain.core import Schema
+
+type NDFloats = NDArray[np.floating[Any]]
+"""Type alias for a numpy array of floats."""
 
 
 class RSI(Schema):
@@ -184,7 +188,7 @@ class VolumeProfile(Schema):
         return VolumeProfile(volume_ema=volume_ema)
 
 
-class ADX(Schema):
+class AvgDirectionalIndex(Schema):
     """
     Average Directional Index (ADX).
     Includes the adx at the given period.
@@ -198,7 +202,7 @@ class ADX(Schema):
         low: NDFloats,
         close: NDFloats,
         period: int = 14,
-    ) -> ADX:
+    ) -> AvgDirectionalIndex:
         """
         Calculate the Average Directional Index (ADX) for the given period.
 
@@ -211,7 +215,7 @@ class ADX(Schema):
             The calculated ADX at the given period
         """
         adx = stream.ADX(high, low, close, timeperiod=period)
-        return ADX(adx=adx)
+        return AvgDirectionalIndex(adx=adx)
 
 
 class IchimokuCloud(Schema):
@@ -283,16 +287,101 @@ class MoneyFlowIndex(Schema):
         return MoneyFlowIndex(mfi=mfi)
 
 
+class AvgTrueRange(Schema):
+    """
+    Average True Range (ATR).
+    Includes the atr at the given period.
+    """
+
+    atr: float
+
+    @staticmethod
+    def calc_atr(
+        high: NDFloats,
+        low: NDFloats,
+        close: NDFloats,
+        period: int = 10,
+    ) -> AvgTrueRange:
+        """
+        Calculate the Average True Range (ATR) for the given period.
+
+        Args:
+            high: The high prices of the asset
+            low: The low prices of the asset
+            close: The closing prices of the asset
+            period: The period to calculate the ATR (default 10)
+        Returns:
+            The calculated ATR at the given period
+        """
+        atr = stream.ATR(high, low, close, timeperiod=period)
+        return AvgTrueRange(atr=atr)
+
+
+class PriceROC(Schema):
+    """
+    Price Rate of Change (ROC).
+    Includes the roc at the given period.
+    """
+
+    roc: float
+
+    @staticmethod
+    def calc_roc(close: NDFloats, period: int = 6) -> PriceROC:
+        """
+        Calculate the Price Rate of Change (ROC) for the given period.
+
+        Args:
+            close: The closing prices of the asset
+            period: The period to calculate the ROC (default 6)
+        Returns:
+            The calculated ROC at the given period
+        """
+        roc = stream.ROC(close, timeperiod=period)
+        return PriceROC(roc=roc)
+
+
+class SMA(Schema):
+    """
+    Simple Moving Average (SMA).
+    Includes the sma at 7, 14, 21, 28 days.
+    """
+
+    sma_7: float
+    sma_14: float
+    sma_21: float
+    sma_28: float
+
+    @staticmethod
+    def calc_sma(close: NDFloats) -> SMA:
+        """
+        Calculate the Simple Moving Average (SMA) for 7, 14, 21, 28 days.
+
+        Args:
+            close: The closing prices of the asset
+        Returns:
+            The calculated SMA at 7, 14, 21, 28 days
+        """
+        return SMA(
+            sma_7=stream.SMA(close, timeperiod=7),
+            sma_14=stream.SMA(close, timeperiod=14),
+            sma_21=stream.SMA(close, timeperiod=21),
+            sma_28=stream.SMA(close, timeperiod=28),
+        )
+
+
 class TechnicalAnalysis(
     CandleProps,
     RSI,
     MACD,
     BollingerBands,
     StochasticRSI,
-    ADX,
+    AvgDirectionalIndex,
     VolumeProfile,
     IchimokuCloud,
     MoneyFlowIndex,
+    AvgTrueRange,
+    PriceROC,
+    SMA,
 ):
     """Technical analysis of a candle.
     It includes the candle properties and the following technical indicators:
@@ -306,6 +395,9 @@ class TechnicalAnalysis(
     - Exponential Moving Average (EMA at 10 days)
     - Ichimoku Cloud (Ichimoku at 9, 20, 40 days)
     - Money Flow Index (MFI at 14 days)
+    - Average True Range (ATR at 10 days)
+    - Price Rate of Change (ROC at 6 days)
+    - Simple Moving Average (SMA at 7, 14, 21, 28 days)
     """
 
     @classmethod
@@ -346,4 +438,7 @@ class TechnicalAnalysis(
             **cls.calc_volume_ema(volume).unpack(),
             **cls.calc_ichimoku(close).unpack(),
             **cls.calc_mfi(high, low, close, volume).unpack(),
+            **cls.calc_atr(high, low, close).unpack(),
+            **cls.calc_roc(close).unpack(),
+            **cls.calc_sma(close).unpack(),
         )
