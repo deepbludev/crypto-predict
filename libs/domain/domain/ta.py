@@ -75,7 +75,7 @@ class MACD(Schema):
         return MACD(macd=macd, macd_signal=macd_signal, macd_hist=macd_hist)
 
 
-class BBANDS(Schema):
+class BollingerBands(Schema):
     """
     Bollinger Bands (BBANDS).
     It includes the Bollinger Bands upper, middle and lower.
@@ -92,7 +92,7 @@ class BBANDS(Schema):
         nbdevup: int = 2,
         nbdevdn: int = 2,
         matype: int = 0,
-    ) -> BBANDS:
+    ) -> BollingerBands:
         """
         Calculate the Bollinger Bands (BBANDS) for the given periods.
 
@@ -112,14 +112,14 @@ class BBANDS(Schema):
             nbdevdn=nbdevdn,
             matype=matype,
         )
-        return BBANDS(
+        return BollingerBands(
             bbands_upper=bbands_upper,
             bbands_middle=bbands_middle,
             bbands_lower=bbands_lower,
         )
 
 
-class STOCHRSI(Schema):
+class StochasticRSI(Schema):
     """
     Stochastic Relative Strength Index (STOCHRSI).
     It includes the fastk and fastd.
@@ -135,7 +135,7 @@ class STOCHRSI(Schema):
         fastk_period: int = 5,
         fastd_period: int = 3,
         fastd_matype: int = 0,
-    ) -> STOCHRSI:
+    ) -> StochasticRSI:
         """
         Calculate the Stochastic Relative Strength Index (STOCHRSI)
         for the given periods.
@@ -156,32 +156,110 @@ class STOCHRSI(Schema):
             fastd_period,
             fastd_matype,
         )
-        return STOCHRSI(stochrsi_fastk=stochrsi_fastk, stochrsi_fastd=stochrsi_fastd)
+        return StochasticRSI(
+            stochrsi_fastk=stochrsi_fastk, stochrsi_fastd=stochrsi_fastd
+        )
+
+
+class VolumeProfile(Schema):
+    """
+    Volume profile of the candle.
+    Includes the volume EMA.
+    """
+
+    volume_ema: float
+
+    @staticmethod
+    def calc_volume_ema(volume: NDFloats, period: int = 10) -> VolumeProfile:
+        """
+        Calculate the Exponential Moving Average (EMA) of the volume.
+
+        Args:
+            volume: The volume of the asset
+            period: The period to calculate the EMA (default 10)
+        Returns:
+            The calculated EMA of the volume
+        """
+        volume_ema = stream.EMA(volume, timeperiod=period)
+        return VolumeProfile(volume_ema=volume_ema)
 
 
 class ADX(Schema):
     """
     Average Directional Index (ADX).
-    The default period is 14 days.
+    Includes the adx at the given period.
     """
 
     adx: float
 
     @staticmethod
     def calc_adx(
-        high: NDFloats, low: NDFloats, close: NDFloats, period: int = 14
+        high: NDFloats,
+        low: NDFloats,
+        close: NDFloats,
+        period: int = 14,
     ) -> ADX:
+        """
+        Calculate the Average Directional Index (ADX) for the given period.
+
+        Args:
+            high: The high prices of the asset
+            low: The low prices of the asset
+            close: The closing prices of the asset
+            period: The period to calculate the ADX (default 14)
+        Returns:
+            The calculated ADX at the given period
+        """
         adx = stream.ADX(high, low, close, timeperiod=period)
         return ADX(adx=adx)
+
+
+class IchimokuCloud(Schema):
+    """
+    Ichimoku Cloud (Ichimoku).
+    Includes the Ichimoku conversion, base, leading span A and leading span B.
+    """
+
+    ichimoku_conv: float
+    ichimoku_base: float
+    ichimoku_span_a: float
+    ichimoku_span_b: float
+
+    @staticmethod
+    def calc_ichimoku(
+        close: NDFloats,
+        conv_period: int = 9,
+        base_period: int = 20,
+        span_period: int = 40,
+    ) -> IchimokuCloud:
+        """
+        Calculate the Ichimoku Cloud (Ichimoku) for the given periods.
+
+        Args:
+            close: The closing prices of the asset
+            conv_period: The period for the Ichimoku conversion (default 9)
+            base_period: The period for the Ichimoku base (default 20)
+            span_period: The period for the Ichimoku span (default 40)
+        Returns:
+            The calculated Ichimoku Cloud at the given periods
+        """
+        return IchimokuCloud(
+            ichimoku_conv=(conv := stream.EMA(close, timeperiod=conv_period)),
+            ichimoku_base=(base := stream.EMA(close, timeperiod=base_period)),
+            ichimoku_span_a=(conv + base) / 2,
+            ichimoku_span_b=stream.EMA(close, timeperiod=span_period),
+        )
 
 
 class TechnicalAnalysis(
     CandleProps,
     RSI,
     MACD,
-    BBANDS,
-    STOCHRSI,
+    BollingerBands,
+    StochasticRSI,
     ADX,
+    VolumeProfile,
+    IchimokuCloud,
 ):
     """Technical analysis of a candle.
     It includes the candle properties and the following technical indicators:
@@ -191,7 +269,9 @@ class TechnicalAnalysis(
     - Bollinger Bands (BBANDS at 20 days, stddev 2, moving average type simple)
     - Stochastic Relative Strength Index (STOCHRSI at 10 days, 5 fastk period,
     3 fastd period, fastd moving average type simple)
-
+    - Average Directional Index (ADX at 14 days)
+    - Exponential Moving Average (EMA at 10 days)
+    - Ichimoku Cloud (Ichimoku at 9, 20, 40 days)
     """
 
     @classmethod
@@ -217,7 +297,7 @@ class TechnicalAnalysis(
         """
 
         # convert the values to numpy arrays
-        high, low, close, _volume = [
+        high, low, close, volume = [
             np.array(list(v))
             for v in [high_values, low_values, close_values, volume_values]
         ]
@@ -229,4 +309,6 @@ class TechnicalAnalysis(
             **cls.calc_bbands(close).unpack(),
             **cls.calc_stochrsi(close, period=10).unpack(),
             **cls.calc_adx(high, low, close).unpack(),
+            **cls.calc_volume_ema(volume).unpack(),
+            **cls.calc_ichimoku(close).unpack(),
         )
