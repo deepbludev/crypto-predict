@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     )
 
     broker_address: str = "localhost:19092"
-    consumer_group: str = "candles_consumer_group"
+    consumer_group: str = "cg_candles"
     input_topic: str = "trades"
     output_topic: str = "candles"
     timeframe: CandleTimeframe = CandleTimeframe.tf_1m

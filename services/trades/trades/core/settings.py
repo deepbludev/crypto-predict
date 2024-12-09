@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     )
 
     broker_address: str = "localhost:19092"
-    consumer_group: str = "trades_consumer_group"
+    consumer_group: str = "cg_trades"
     topic: str = "trades"
     symbols: list[Symbol] = [Symbol.XRPUSD]
 
