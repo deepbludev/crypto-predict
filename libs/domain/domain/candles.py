@@ -119,18 +119,27 @@ class Candle(CandleProps):
 
         return self
 
-    def same_window(self, other: Candle | None) -> bool:
+    def is_compatible(self, other: Candle | None) -> bool:
+        """
+        Check if the candle is compatible with the other given candle.
+        Candles must have the same symbol and timeframe in order to be considered
+        compatible.
+        """
+        if not other:
+            return False
+
+        return self.symbol == other.symbol and self.timeframe == other.timeframe
+
+    def is_same_window(self, other: Candle | None) -> bool:
         """
         Check if the candle is in the same window as the other given candle.
-        Candles must have the same symbol and timeframe in order to be considered
-        in the same window.
+        Candles must be compatible and have the same start and end timestamps.
         """
         if not other:
             return False
 
         return (
-            self.symbol == other.symbol
-            and self.timeframe == other.timeframe
+            self.is_compatible(other)
             and self.start == other.start
             and self.end == other.end
         )

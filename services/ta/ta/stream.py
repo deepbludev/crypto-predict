@@ -41,16 +41,17 @@ def do_ta_from_candles(stream_app: qs.Application):
         )
         # 2. Validate the candle
         .apply(lambda candle: Candle.model_validate(candle or {}))
-        # 3. Update the candle state with the latest candle
-        # filtering out candles that are not of the same symbol or window size
-        .apply(update_candle_state_with_latest, stateful=True)
-        # 4. Generate technical indicators
+        # 3. Filter out candles that are not compatible with the latest candle
+        .filter(is_compatible_with_last_candle_if_any, stateful=True)
+        # 4. Update the state with the latest candle
+        .apply(update_state_with_latest, stateful=True)
+        # 5. Generate technical analysis
         .apply(do_ta_for_latest, stateful=True)
         .apply(lambda ta: ta.unpack())
-        # 4. Produce the technical indicators to the output topic
+        # 6. Produce the technical analysis to the output topic
         .to_topic(
             topic=stream_app.topic(
-                name=settings.output_topic + "_debug",  # TODO: Remove debug
+                name=settings.output_topic,
                 value_serializer="json",
             )
         )
@@ -60,7 +61,27 @@ def do_ta_from_candles(stream_app: qs.Application):
     return stream_app
 
 
-def update_candle_state_with_latest(latest: Candle, state: qs.State) -> Candle:
+def get_candle_state(state: qs.State) -> list[dict[str, Any]]:
+    """Gets the candle state from the state."""
+    return cast(list[dict[str, Any]], state.get("candles", default=[]))
+
+
+def get_last_candle(state: qs.State) -> Candle | None:
+    """Gets the last candle from the state."""
+    candles_state = get_candle_state(state)
+    return Candle.model_validate(candles_state[-1]) if candles_state else None
+
+
+def is_compatible_with_last_candle_if_any(latest: Candle, state: qs.State) -> bool:
+    """
+    Filters out candles that are not compatible with the latest candle,
+    if there is a last candle in the state.
+    """
+    last_candle = get_last_candle(state)
+    return not last_candle or latest.is_compatible(last_candle)
+
+
+def update_state_with_latest(latest: Candle, state: qs.State) -> Candle:
     """
     Updates the candles in the state using the latest candle.
 
@@ -78,10 +99,10 @@ def update_candle_state_with_latest(latest: Candle, state: qs.State) -> Candle:
         None
     """
     # Get the list of candles from our state
-    candles_state = cast(list[dict[str, Any]], state.get("candles", default=[]))
-    last_candle = Candle.model_validate(candles_state[-1]) if candles_state else None
+    candles_state = get_candle_state(state)
+    last_candle = get_last_candle(state)
 
-    if latest.same_window(last_candle):
+    if latest.is_same_window(last_candle):
         # Replace the last candle in the list with the latest candle
         candles_state[-1] = latest.unpack()
     else:
@@ -96,8 +117,6 @@ def update_candle_state_with_latest(latest: Candle, state: qs.State) -> Candle:
     # TODO: check if the candles have no missing windows
     # this can happen for low volume pairs. In this case, the missing windows
     # should be interpolated.
-
-    logger.debug(f"Candles in state for {latest.symbol}: {len(candles_state)}")
 
     # Update the state with the new list of candles
     state.set("candles", candles_state)
