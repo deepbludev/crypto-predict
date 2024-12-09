@@ -10,7 +10,11 @@ from domain.core import NDFloats, Schema
 
 
 class RSI(Schema):
-    """Relative Strength Index (RSI)"""
+    """
+    Relative Strength Index (RSI).
+
+    It includes the RSI at 9, 14, 21, 28 days.
+    """
 
     rsi_9: float
     rsi_14: float
@@ -25,7 +29,7 @@ class RSI(Schema):
         Args:
             close_values: The closing prices of the asset
         Returns:
-            The calculated RSI
+            The calculated RSI at 9, 14, 21, 28 days
         """
         return RSI(
             rsi_9=stream.RSI(close, timeperiod=9),
@@ -38,6 +42,7 @@ class RSI(Schema):
 class MACD(Schema):
     """
     Moving Average Convergence Divergence (MACD).
+
     It includes the MACD, MACD signal and MACD histogram.
     The default periods are fast 12, slow 26, signal 9 days.
     """
@@ -62,7 +67,7 @@ class MACD(Schema):
             slow_period: The slow period to calculate the MACD (default 26)
             signal_period: The signal period to calculate the MACD (default 9)
         Returns:
-            The calculated MACD
+            The calculated MACD at the given periods
         """
         macd, macd_signal, macd_hist = stream.MACD(
             close,
@@ -73,17 +78,52 @@ class MACD(Schema):
         return MACD(macd=macd, macd_signal=macd_signal, macd_hist=macd_hist)
 
 
+class BBANDS(Schema):
+    """
+    Bollinger Bands (BBANDS).
+
+    It includes the Bollinger Bands upper, middle and lower.
+    The default periods are 20 days, stddev 2 and the moving average type is simple (0).
+    """
+
+    bbands_upper: float
+    bbands_middle: float
+    bbands_lower: float
+
+    @staticmethod
+    def calc_bbands(
+        close: NDFloats,
+        period: int = 20,
+        nbdevup: int = 2,
+        nbdevdn: int = 2,
+        matype: int = 0,
+    ) -> BBANDS:
+        bbands_upper, bbands_middle, bbands_lower = stream.BBANDS(
+            close,
+            timeperiod=period,
+            nbdevup=nbdevup,
+            nbdevdn=nbdevdn,
+            matype=matype,
+        )
+        return BBANDS(
+            bbands_upper=bbands_upper,
+            bbands_middle=bbands_middle,
+            bbands_lower=bbands_lower,
+        )
+
+
 class TechnicalAnalysis(
     CandleProps,
     RSI,
     MACD,
+    BBANDS,
 ):
     """Technical analysis of a candle.
     It includes the candle properties and the following technical indicators:
 
     - Relative Strength Index (RSI at 9, 14, 21, 28 days)
     - Moving Average Convergence Divergence (MACD at 12, 26, 9 days)
-    - Bollinger Bands (BBANDS at 20 days, stddev 2)
+    - Bollinger Bands (BBANDS at 20 days, stddev 2, moving average type simple)
 
     """
 
@@ -110,4 +150,5 @@ class TechnicalAnalysis(
             **candle.unpack(),
             **cls.calc_rsi(close).unpack(),
             **cls.calc_macd(close).unpack(),
+            **cls.calc_bbands(close).unpack(),
         )
