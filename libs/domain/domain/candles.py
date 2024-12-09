@@ -43,7 +43,22 @@ class CandleWindowSize(str, Enum):
                 return 60 * 60 * 24 * 30
 
 
-class Candle(Schema):
+class CandleProps(Schema):
+    """Properties of an OHLC candle."""
+
+    symbol: Symbol
+    window_size: CandleWindowSize
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: float
+    timestamp: int
+    start: int | None = None
+    end: int | None = None
+
+
+class Candle(CandleProps):
     """
     Represents an OHLC candle.
 
@@ -59,17 +74,6 @@ class Candle(Schema):
         start: The start timestamp of the candle window in milliseconds.
         end: The end timestamp of the candle window in milliseconds.
     """
-
-    symbol: Symbol
-    window_size: CandleWindowSize
-    open: float
-    high: float
-    low: float
-    close: float
-    volume: float
-    timestamp: int
-    start: int | None = None
-    end: int | None = None
 
     @classmethod
     def init(cls, window_size: CandleWindowSize, first_trade: Trade) -> Self:
@@ -115,3 +119,17 @@ class Candle(Schema):
         self.timestamp = trade.timestamp
 
         return self
+
+    def same_window(self, other: Candle | None) -> bool:
+        """
+        Check if the candle is in the same window as the other given candle.
+        Candles must have the same symbol in order to be considered in the same window.
+        """
+        if not other:
+            return False
+
+        return (
+            self.symbol == other.symbol
+            and self.start == other.start
+            and self.end == other.end
+        )

@@ -30,7 +30,7 @@ COPY libs /app/libs
 # Install the project's dependencies using the lockfile and settings
 # only selecting the default dep groups and the specific service dep group
 RUN --mount=type=cache,target=/root/.cache/uv \
-  uv sync --frozen --no-dev --extra ${SERVICE_NAME} --no-install-project
+  uv sync --frozen --no-dev --group ${SERVICE_NAME} --no-install-project
 
 # Add the rest of the project source code
 COPY . /app
