@@ -141,10 +141,15 @@ source = { virtual = "." }
 dependencies = [
     { name = "candles" },
     { name = "domain" },
+    { name = "fastapi", extra = ["all"] },
+    { name = "loguru" },
     { name = "numpy" },
+    { name = "pydantic" },
+    { name = "quixstreams" },
     { name = "ta" },
     { name = "ta-lib" },
     { name = "trades" },
+    { name = "websockets" },
 ]
 
 [package.dev-dependencies]
@@ -153,48 +158,28 @@ dev = [
     { name = "pytest" },
     { name = "ruff" },
 ]
-shared = [
-    { name = "fastapi", extra = ["all"] },
-    { name = "loguru" },
-    { name = "pydantic" },
-    { name = "quixstreams" },
-    { name = "websockets" },
-]
-ta = [
-    { name = "numpy" },
-    { name = "ta-lib" },
-]
 
 [package.metadata]
 requires-dist = [
     { name = "candles", editable = "services/candles" },
     { name = "domain", editable = "libs/domain" },
+    { name = "fastapi", extras = ["all"], specifier = ">=0.115.5" },
+    { name = "loguru", specifier = ">=0.7.2" },
     { name = "numpy", specifier = ">=2.2.0" },
+    { name = "pydantic", specifier = ">=2.9.2" },
+    { name = "quixstreams", specifier = ">=3.3.0" },
     { name = "ta", editable = "services/ta" },
     { name = "ta-lib", specifier = ">=0.5.1" },
     { name = "trades", editable = "services/trades" },
+    { name = "websockets", specifier = ">=14.1" },
 ]
 
 [package.metadata.requires-dev]
-candles = []
 dev = [
     { name = "pyright", specifier = ">=1.1.390" },
     { name = "pytest", specifier = ">=8.3.4" },
     { name = "ruff", specifier = ">=0.8.1" },
 ]
-domain = []
-shared = [
-    { name = "fastapi", extras = ["all"], specifier = ">=0.115.5" },
-    { name = "loguru", specifier = ">=0.7.2" },
-    { name = "pydantic", specifier = ">=2.9.2" },
-    { name = "quixstreams", specifier = ">=3.3.0" },
-    { name = "websockets", specifier = ">=14.1" },
-]
-ta = [
-    { name = "numpy", specifier = ">=2.2.0" },
-    { name = "ta-lib", specifier = ">=0.5.1" },
-]
-trades = []
 
 [[package]]
 name = "dnspython"

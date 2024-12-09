@@ -3,36 +3,21 @@ name = "crypto-predict"
 version = "0.1"
 requires-python = ">= 3.12"
 dependencies = [
-  # -- trades
   "trades",
-  # -- candles
   "candles",
-  # -- ta
   "ta",
-  "numpy>=2.2.0",
-  "ta-lib>=0.5.1",
-  # -- domain
   "domain",
-]
-
-[dependency-groups]
-shared = [
+  # python packages
   "fastapi[all]>=0.115.5",
   "loguru>=0.7.2",
   "pydantic>=2.9.2",
   "quixstreams>=3.3.0",
   "websockets>=14.1",
-]
-domain = []
-trades = []
-candles = []
-ta = [
   "numpy>=2.2.0",
   "ta-lib>=0.5.1",
 ]
 
 [tool.uv]
-default-groups = ["shared", "domain"]
 dev-dependencies = [
   "pyright>=1.1.390",
   "pytest>=8.3.4",
@@ -40,11 +25,9 @@ dev-dependencies = [
 ]
 
 [tool.uv.sources]
-# services
 trades = { workspace = true }
 candles = { workspace = true }
 ta = { workspace = true }
-# libs
 domain = { workspace = true }
 
 [tool.uv.workspace]

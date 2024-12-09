@@ -1,6 +1,24 @@
-## --- BUILDER
-FROM python:3.12-slim-bookworm AS builder
+## --- BASE
+FROM python:3.12-slim-bookworm AS base
 
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+  gcc \
+  build-essential \
+  wget \
+  && rm -rf /var/lib/apt/lists/*
+
+# Install ta-lib
+RUN wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz && \
+  tar -xzf ta-lib-0.4.0-src.tar.gz && \
+  cd ta-lib/ && \
+  ./configure --prefix=/usr --build=aarch64-unknown-linux-gnu && \
+  make && \
+  make install && \
+  cd .. && \
+  rm -rf ta-lib*
+
+FROM base AS builder
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 # Enable bytecode compilation
@@ -14,23 +32,16 @@ WORKDIR /app
 # Copy in pyproject.toml, uv.lock 
 COPY pyproject.toml uv.lock /app/
 
-# Get the service name from the build arg
-ARG SERVICE_NAME
-ENV SERVICE_NAME=${SERVICE_NAME}
-
-# Install service-specific dependencies
-COPY .docker/install_service_deps.sh /install_service_deps.sh
-RUN chmod +x /install_service_deps.sh
-RUN /install_service_deps.sh ${SERVICE_NAME}
-
 # Copy and services & libs to build the workspace
 COPY services /app/services
 COPY libs /app/libs
 
 # Install the project's dependencies using the lockfile and settings
 # only selecting the default dep groups and the specific service dep group
+ARG SERVICE_NAME
+ENV SERVICE_NAME=${SERVICE_NAME}
 RUN --mount=type=cache,target=/root/.cache/uv \
-  uv sync --frozen --no-dev --group ${SERVICE_NAME} --no-install-project
+  uv sync --frozen --no-dev --no-install-project
 
 # Add the rest of the project source code
 COPY . /app
@@ -38,15 +49,12 @@ COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
   uv sync --frozen --no-dev 
 
-# Delete the rest of the services source code to optimize image size
-RUN find /app/services -mindepth 1 -maxdepth 1 -type d ! -name "${SERVICE_NAME}" -exec rm -rf {} + 
-
 # Copy the entrypoint script and make it executable
 RUN chmod +x /app/.docker/entrypoint.sh
 
 ## --- RUNNER
 # Then, use a final image without uv
-FROM python:3.12-slim-bookworm AS runner
+FROM base AS runner
 
 # Copy the application from the builder
 COPY --from=builder --chown=app:app /app /app
@@ -59,6 +67,5 @@ ENV SERVICE_NAME=${SERVICE_NAME}
 ARG PORT
 ENV PORT=${PORT}
 
-# Run the FastAPI application in production mode
 EXPOSE ${PORT}
 ENTRYPOINT ["/app/.docker/entrypoint.sh"]
