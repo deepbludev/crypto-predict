@@ -17,17 +17,13 @@ class RSI(Schema):
     rsi_21: float
     rsi_28: float
 
-    @classmethod
-    def calc_rsi(
-        cls,
-        close: NDFloats,
-    ) -> RSI:
+    @staticmethod
+    def calc_rsi(close: NDFloats) -> RSI:
         """
-        Calculate the Relative Strength Index (RSI) for a given period in days.
+        Calculate the Relative Strength Index (RSI) for the periods 9, 14, 21, 28 days
 
         Args:
             close_values: The closing prices of the asset
-            period: The period in days to calculate the RSI
         Returns:
             The calculated RSI
         """
@@ -39,11 +35,57 @@ class RSI(Schema):
         )
 
 
+class MACD(Schema):
+    """
+    Moving Average Convergence Divergence (MACD).
+    It includes the MACD, MACD signal and MACD histogram.
+    The default periods are fast 12, slow 26, signal 9 days.
+    """
+
+    macd: float
+    macd_signal: float
+    macd_hist: float
+
+    @staticmethod
+    def calc_macd(
+        close: NDFloats,
+        fast_period: int = 12,
+        slow_period: int = 26,
+        signal_period: int = 9,
+    ) -> MACD:
+        """
+        Calculate the Moving Average Convergence Divergence (MACD) the given periods.
+
+        Args:
+            close_values: The closing prices of the asset
+            fast_period: The fast period to calculate the MACD (default 12)
+            slow_period: The slow period to calculate the MACD (default 26)
+            signal_period: The signal period to calculate the MACD (default 9)
+        Returns:
+            The calculated MACD
+        """
+        macd, macd_signal, macd_hist = stream.MACD(
+            close,
+            fastperiod=fast_period,
+            slowperiod=slow_period,
+            signalperiod=signal_period,
+        )
+        return MACD(macd=macd, macd_signal=macd_signal, macd_hist=macd_hist)
+
+
 class TechnicalAnalysis(
     CandleProps,
     RSI,
+    MACD,
 ):
-    """Technical analysis of a candle."""
+    """Technical analysis of a candle.
+    It includes the candle properties and the following technical indicators:
+
+    - Relative Strength Index (RSI at 9, 14, 21, 28 days)
+    - Moving Average Convergence Divergence (MACD at 12, 26, 9 days)
+    - Bollinger Bands (BBANDS at 20 days, stddev 2)
+
+    """
 
     @classmethod
     def calc(
@@ -66,5 +108,6 @@ class TechnicalAnalysis(
 
         return cls(
             **candle.unpack(),
-            **RSI.calc_rsi(close).unpack(),
+            **cls.calc_rsi(close).unpack(),
+            **cls.calc_macd(close).unpack(),
         )
