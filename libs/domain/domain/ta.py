@@ -6,18 +6,44 @@ import numpy as np
 from talib import stream
 
 from domain.candles import CandleProps
-from domain.core import NDFloats
-
-type RSI = float
+from domain.core import NDFloats, Schema
 
 
-class TechnicalAnalysis(CandleProps):
+class RSI(Schema):
+    """Relative Strength Index (RSI)"""
+
+    rsi_9: float
+    rsi_14: float
+    rsi_21: float
+    rsi_28: float
+
+    @classmethod
+    def calc_rsi(
+        cls,
+        close: NDFloats,
+    ) -> RSI:
+        """
+        Calculate the Relative Strength Index (RSI) for a given period in days.
+
+        Args:
+            close_values: The closing prices of the asset
+            period: The period in days to calculate the RSI
+        Returns:
+            The calculated RSI
+        """
+        return RSI(
+            rsi_9=stream.RSI(close, timeperiod=9),
+            rsi_14=stream.RSI(close, timeperiod=14),
+            rsi_21=stream.RSI(close, timeperiod=21),
+            rsi_28=stream.RSI(close, timeperiod=28),
+        )
+
+
+class TechnicalAnalysis(
+    CandleProps,
+    RSI,
+):
     """Technical analysis of a candle."""
-
-    rsi_9: RSI
-    rsi_14: RSI
-    rsi_21: RSI
-    rsi_28: RSI
 
     @classmethod
     def calc(
@@ -39,16 +65,6 @@ class TechnicalAnalysis(CandleProps):
         ]
 
         return cls(
-            # Candle details
             **candle.unpack(),
-            # RSI
-            rsi_9=cls.rsi(close, period=9),
-            rsi_14=cls.rsi(close, period=14),
-            rsi_21=cls.rsi(close, period=21),
-            rsi_28=cls.rsi(close, period=28),
+            **RSI.calc_rsi(close).unpack(),
         )
-
-    @classmethod
-    def rsi(cls, close_values: NDFloats, period: int) -> RSI:
-        """Calculate the Relative Strength Index (RSI) for a given period in days."""
-        return stream.RSI(close_values, timeperiod=period)

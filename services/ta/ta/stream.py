@@ -88,9 +88,9 @@ def update_candle_state_with_latest(latest: Candle, state: qs.State) -> Candle:
         # Append if the state is empty or the candle is not in the same window
         candles_state.append(latest.unpack())
 
-    # If the total number of candles in the state is greater than the maximum number of
-    # candles allowed, the oldest candle is removed from the list
     if len(candles_state) > MAX_CANDLES_IN_STATE:
+        # If the total number of candles in the state is greater than the maximum
+        # number of candles allowed, the oldest candle is removed from the list
         candles_state.pop(0)
 
     # TODO: check if the candles have no missing windows
