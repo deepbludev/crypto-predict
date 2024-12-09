@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     input_topic: str = "candles"
     output_topic: str = "ta"
     candle_window_size: CandleWindowSize = CandleWindowSize.CANDLE_1m
+    max_candles_in_state: int = 60
 
 
 @lru_cache()
