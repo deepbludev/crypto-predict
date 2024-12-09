@@ -37,10 +37,6 @@ def generate_candles_from_trades(stream_app: qs.Application):
         timestamp: float,
         timestamp_type: qs.models.TimestampType,
     ) -> int:
-        """
-        Specifying a custom timestamp extractor to use the timestamp from the message
-        payload instead of Kafka timestamp.
-        """
         return value["timestamp"]
 
     (

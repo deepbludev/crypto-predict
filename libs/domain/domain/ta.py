@@ -12,7 +12,6 @@ from domain.core import NDFloats, Schema
 class RSI(Schema):
     """
     Relative Strength Index (RSI).
-
     It includes the RSI at 9, 14, 21, 28 days.
     """
 
@@ -27,7 +26,7 @@ class RSI(Schema):
         Calculate the Relative Strength Index (RSI) for the periods 9, 14, 21, 28 days
 
         Args:
-            close_values: The closing prices of the asset
+            close: The closing prices of the asset
         Returns:
             The calculated RSI at 9, 14, 21, 28 days
         """
@@ -42,9 +41,7 @@ class RSI(Schema):
 class MACD(Schema):
     """
     Moving Average Convergence Divergence (MACD).
-
     It includes the MACD, MACD signal and MACD histogram.
-    The default periods are fast 12, slow 26, signal 9 days.
     """
 
     macd: float
@@ -62,10 +59,10 @@ class MACD(Schema):
         Calculate the Moving Average Convergence Divergence (MACD) the given periods.
 
         Args:
-            close_values: The closing prices of the asset
-            fast_period: The fast period to calculate the MACD (default 12)
-            slow_period: The slow period to calculate the MACD (default 26)
-            signal_period: The signal period to calculate the MACD (default 9)
+            close: The closing prices of the asset
+            fast_period: The fast period (default 12)
+            slow_period: The slow period (default 26)
+            signal_period: The signal period (default 9)
         Returns:
             The calculated MACD at the given periods
         """
@@ -81,9 +78,7 @@ class MACD(Schema):
 class BBANDS(Schema):
     """
     Bollinger Bands (BBANDS).
-
     It includes the Bollinger Bands upper, middle and lower.
-    The default periods are 20 days, stddev 2 and the moving average type is simple (0).
     """
 
     bbands_upper: float
@@ -98,6 +93,18 @@ class BBANDS(Schema):
         nbdevdn: int = 2,
         matype: int = 0,
     ) -> BBANDS:
+        """
+        Calculate the Bollinger Bands (BBANDS) for the given periods.
+
+        Args:
+            close: The closing prices of the asset
+            period: The period to calculate the BBANDS (default 20)
+            nbdevup: The stdev multiplier for the upper band (default 2)
+            nbdevdn: The stdev multiplier for the lower band (default 2)
+            matype: The moving average type (default 0)
+        Returns:
+            The calculated BBANDS at the given periods
+        """
         bbands_upper, bbands_middle, bbands_lower = stream.BBANDS(
             close,
             timeperiod=period,
@@ -115,9 +122,7 @@ class BBANDS(Schema):
 class STOCHRSI(Schema):
     """
     Stochastic Relative Strength Index (STOCHRSI).
-
-    It includes the fastk and fastd. The defaults are
-    14 days, 5 fastk period, 3 fastd period and fastd moving average type simple.
+    It includes the fastk and fastd.
     """
 
     stochrsi_fastk: float
@@ -131,6 +136,19 @@ class STOCHRSI(Schema):
         fastd_period: int = 3,
         fastd_matype: int = 0,
     ) -> STOCHRSI:
+        """
+        Calculate the Stochastic Relative Strength Index (STOCHRSI)
+        for the given periods.
+
+        Args:
+            close: The closing prices of the asset
+            period: The period for the STOCHRSI (default 14)
+            fastk_period: The fastk period (default 5)
+            fastd_period: The fastd period (default 3)
+            fastd_matype: The fastd moving average type (default 0)
+        Returns:
+            The calculated STOCHRSI at the given periods
+        """
         stochrsi_fastk, stochrsi_fastd = stream.STOCHRSI(
             close,
             period,
@@ -141,12 +159,29 @@ class STOCHRSI(Schema):
         return STOCHRSI(stochrsi_fastk=stochrsi_fastk, stochrsi_fastd=stochrsi_fastd)
 
 
+class ADX(Schema):
+    """
+    Average Directional Index (ADX).
+    The default period is 14 days.
+    """
+
+    adx: float
+
+    @staticmethod
+    def calc_adx(
+        high: NDFloats, low: NDFloats, close: NDFloats, period: int = 14
+    ) -> ADX:
+        adx = stream.ADX(high, low, close, timeperiod=period)
+        return ADX(adx=adx)
+
+
 class TechnicalAnalysis(
     CandleProps,
     RSI,
     MACD,
     BBANDS,
     STOCHRSI,
+    ADX,
 ):
     """Technical analysis of a candle.
     It includes the candle properties and the following technical indicators:
@@ -168,14 +203,23 @@ class TechnicalAnalysis(
         close_values: Iterable[float],
         volume_values: Iterable[float],
     ) -> Self:
-        _high, _low, close, _volume = [
+        """
+        Calculate the technical analysis of a candle.
+
+        Args:
+            candle: The candle to calculate the technical analysis
+            high_values: The high prices of the candle
+            low_values: The low prices of the candle
+            close_values: The closing prices of the candle
+            volume_values: The volume of the candle
+        Returns:
+            The technical analysis of the candle
+        """
+
+        # convert the values to numpy arrays
+        high, low, close, _volume = [
             np.array(list(v))
-            for v in [
-                high_values,
-                low_values,
-                close_values,
-                volume_values,
-            ]
+            for v in [high_values, low_values, close_values, volume_values]
         ]
 
         return cls(
@@ -184,4 +228,5 @@ class TechnicalAnalysis(
             **cls.calc_macd(close).unpack(),
             **cls.calc_bbands(close).unpack(),
             **cls.calc_stochrsi(close, period=10).unpack(),
+            **cls.calc_adx(high, low, close).unpack(),
         )
