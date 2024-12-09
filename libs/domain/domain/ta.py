@@ -251,6 +251,38 @@ class IchimokuCloud(Schema):
         )
 
 
+class MoneyFlowIndex(Schema):
+    """
+    Money Flow Index (MFI).
+    Includes the mfi at the given period.
+    """
+
+    mfi: float
+
+    @staticmethod
+    def calc_mfi(
+        high: NDFloats,
+        low: NDFloats,
+        close: NDFloats,
+        volume: NDFloats,
+        period: int = 14,
+    ) -> MoneyFlowIndex:
+        """
+        Calculate the Money Flow Index (MFI) for the given period.
+
+        Args:
+            high: The high prices of the asset
+            low: The low prices of the asset
+            close: The closing prices of the asset
+            volume: The volume of the asset
+            period: The period to calculate the MFI (default 14)
+        Returns:
+            The calculated MFI at the given period
+        """
+        mfi = stream.MFI(high, low, close, volume, timeperiod=period)
+        return MoneyFlowIndex(mfi=mfi)
+
+
 class TechnicalAnalysis(
     CandleProps,
     RSI,
@@ -260,6 +292,7 @@ class TechnicalAnalysis(
     ADX,
     VolumeProfile,
     IchimokuCloud,
+    MoneyFlowIndex,
 ):
     """Technical analysis of a candle.
     It includes the candle properties and the following technical indicators:
@@ -272,6 +305,7 @@ class TechnicalAnalysis(
     - Average Directional Index (ADX at 14 days)
     - Exponential Moving Average (EMA at 10 days)
     - Ichimoku Cloud (Ichimoku at 9, 20, 40 days)
+    - Money Flow Index (MFI at 14 days)
     """
 
     @classmethod
@@ -311,4 +345,5 @@ class TechnicalAnalysis(
             **cls.calc_adx(high, low, close).unpack(),
             **cls.calc_volume_ema(volume).unpack(),
             **cls.calc_ichimoku(close).unpack(),
+            **cls.calc_mfi(high, low, close, volume).unpack(),
         )
