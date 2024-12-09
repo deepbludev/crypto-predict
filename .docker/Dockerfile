@@ -53,7 +53,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 RUN chmod +x /app/.docker/entrypoint.sh
 
 ## --- RUNNER
-# Then, use a final image without uv
 FROM base AS runner
 
 # Copy the application from the builder

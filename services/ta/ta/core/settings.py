@@ -2,7 +2,7 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from domain.candles import CandleWindowSize
+from domain.candles import CandleTimeframe
 
 
 class Settings(BaseSettings):
@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     consumer_group: str = "ta_consumer_group"
     input_topic: str = "candles"
     output_topic: str = "ta"
-    candle_window_size: CandleWindowSize = CandleWindowSize.CANDLE_1m
+    candle_timeframe: CandleTimeframe = CandleTimeframe.tf_1m
     max_candles_in_state: int = 60
 
 

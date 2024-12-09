@@ -7,39 +7,39 @@ from domain.core import Schema
 from domain.trades import Symbol, Trade
 
 
-class CandleWindowSize(str, Enum):
-    """The window size of a candle."""
+class CandleTimeframe(str, Enum):
+    """The timeframe of a candle."""
 
-    CANDLE_1m = "1m"
-    CANDLE_5m = "5m"
-    CANDLE_15m = "15m"
-    CANDLE_30m = "30m"
-    CANDLE_1h = "1h"
-    CANDLE_4h = "4h"
-    CANDLE_1D = "1D"
-    CANDLE_1W = "1W"
-    CANDLE_1M = "1M"
+    tf_1m = "1m"
+    tf_5m = "5m"
+    tf_15m = "15m"
+    tf_30m = "30m"
+    tf_1h = "1h"
+    tf_4h = "4h"
+    tf_1D = "1D"
+    tf_1W = "1W"
+    tf_1M = "1M"
 
     def to_sec(self) -> int:
-        """Convert the window size to seconds."""
+        """Convert the timeframe to seconds."""
         match self:
-            case CandleWindowSize.CANDLE_1m:
+            case CandleTimeframe.tf_1m:
                 return 60 * 1
-            case CandleWindowSize.CANDLE_5m:
+            case CandleTimeframe.tf_5m:
                 return 60 * 5
-            case CandleWindowSize.CANDLE_15m:
+            case CandleTimeframe.tf_15m:
                 return 60 * 15
-            case CandleWindowSize.CANDLE_30m:
+            case CandleTimeframe.tf_30m:
                 return 60 * 30
-            case CandleWindowSize.CANDLE_1h:
+            case CandleTimeframe.tf_1h:
                 return 60 * 60 * 1
-            case CandleWindowSize.CANDLE_4h:
+            case CandleTimeframe.tf_4h:
                 return 60 * 60 * 4
-            case CandleWindowSize.CANDLE_1D:
+            case CandleTimeframe.tf_1D:
                 return 60 * 60 * 24
-            case CandleWindowSize.CANDLE_1W:
+            case CandleTimeframe.tf_1W:
                 return 60 * 60 * 24 * 7
-            case CandleWindowSize.CANDLE_1M:
+            case CandleTimeframe.tf_1M:
                 return 60 * 60 * 24 * 30
 
 
@@ -47,7 +47,7 @@ class CandleProps(Schema):
     """Properties of an OHLC candle."""
 
     symbol: Symbol
-    window_size: CandleWindowSize
+    timeframe: CandleTimeframe
     open: float
     high: float
     low: float
@@ -64,7 +64,7 @@ class Candle(CandleProps):
 
     Attributes:
         symbol: The symbol of the candle.
-        window_size: The window size of the candle.
+        timeframe: The window size of the candle.
         open: The open price of the candle.
         high: The highest price of the candle.
         low: The lowest price of the candle.
@@ -76,21 +76,20 @@ class Candle(CandleProps):
     """
 
     @classmethod
-    def init(cls, window_size: CandleWindowSize, first_trade: Trade) -> Self:
+    def init(cls, timeframe: CandleTimeframe, first_trade: Trade) -> Self:
         """
         Initialize a candle from a trade, using the first trade as the open price.
 
         Args:
-            window_size: The window size of the candle.
+            timeframe: The window size of the candle.
             first_trade: The trade to initialize the candle with.
 
         Returns:
             A newly initialized candle.
         """
-
         return cls(
             symbol=first_trade.symbol,
-            window_size=window_size,
+            timeframe=timeframe,
             open=first_trade.price,
             high=first_trade.price,
             low=first_trade.price,
@@ -123,7 +122,7 @@ class Candle(CandleProps):
     def same_window(self, other: Candle | None) -> bool:
         """
         Check if the candle is in the same window as the other given candle.
-        Candles must have the same symbol and window size in order to be considered
+        Candles must have the same symbol and timeframe in order to be considered
         in the same window.
         """
         if not other:
@@ -131,7 +130,7 @@ class Candle(CandleProps):
 
         return (
             self.symbol == other.symbol
-            and self.window_size == other.window_size
+            and self.timeframe == other.timeframe
             and self.start == other.start
             and self.end == other.end
         )

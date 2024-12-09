@@ -6,6 +6,7 @@ members = [
     "candles",
     "crypto-predict",
     "domain",
+    "features",
     "ta",
     "trades",
 ]
@@ -261,6 +262,16 @@ wheels = [
 standard = [
     { name = "uvicorn", extra = ["standard"] },
 ]
+
+[[package]]
+name = "features"
+version = "0.1.0"
+source = { editable = "services/features" }
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = []
 
 [[package]]
 name = "h11"
