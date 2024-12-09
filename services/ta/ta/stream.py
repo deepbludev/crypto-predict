@@ -4,6 +4,7 @@ import quixstreams as qs
 from loguru import logger
 
 from domain.candles import Candle
+from domain.ta import TechnicalAnalysis
 from ta.core.settings import ta_settings
 
 MAX_CANDLES_IN_STATE = ta_settings().max_candles_in_state
@@ -11,7 +12,7 @@ MAX_CANDLES_IN_STATE = ta_settings().max_candles_in_state
 
 def run_stream(stream_app: qs.Application):
     """Builds the stream and runs it."""
-    perform_ta_from_candles(stream_app)
+    do_ta_from_candles(stream_app)
 
     try:
         logger.info("Starting the TA stream")
@@ -22,7 +23,7 @@ def run_stream(stream_app: qs.Application):
         logger.info("Stream application stopped")
 
 
-def perform_ta_from_candles(stream_app: qs.Application):
+def do_ta_from_candles(stream_app: qs.Application):
     """
     Generates technical indicators from candles.
 
@@ -40,18 +41,12 @@ def perform_ta_from_candles(stream_app: qs.Application):
         )
         # 2. Validate the candle
         .apply(lambda candle: Candle.model_validate(candle or {}))
-        # TODO: filter out candles that are not of the same window size
         # 3. Update the candle state with the latest candle
+        # filtering out candles that are not of the same symbol or window size
         .apply(update_candle_state_with_latest, stateful=True)
         # 4. Generate technical indicators
-        .apply(
-            # TODO: Implement technical indicators
-            lambda candle: {
-                "ta": {
-                    "candle": candle.unpack(),
-                },
-            }
-        )
+        .apply(do_ta_for_latest, stateful=True)
+        .apply(lambda ta: ta.unpack())
         # 4. Produce the technical indicators to the output topic
         .to_topic(
             topic=stream_app.topic(
@@ -108,3 +103,16 @@ def update_candle_state_with_latest(latest: Candle, state: qs.State) -> Candle:
     state.set("candles", candles_state)
 
     return latest
+
+
+def do_ta_for_latest(latest: Candle, state: qs.State) -> TechnicalAnalysis:
+    """Generates technical indicators from a list of candles."""
+    candles_state = cast(list[dict[str, Any]], state.get("candles", default=[]))
+
+    return TechnicalAnalysis.calc(
+        candle=latest,
+        high_values=(candle["high"] for candle in candles_state),
+        low_values=(candle["low"] for candle in candles_state),
+        close_values=(candle["close"] for candle in candles_state),
+        volume_values=(candle["volume"] for candle in candles_state),
+    )

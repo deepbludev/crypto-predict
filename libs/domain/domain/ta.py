@@ -26,9 +26,16 @@ class TechnicalAnalysis(CandleProps):
         high_values: Iterable[float],
         low_values: Iterable[float],
         close_values: Iterable[float],
+        volume_values: Iterable[float],
     ) -> Self:
-        _high, _low, close = [
-            np.array(v) for v in [high_values, low_values, close_values]
+        _high, _low, close, _volume = [
+            np.array(list(v))
+            for v in [
+                high_values,
+                low_values,
+                close_values,
+                volume_values,
+            ]
         ]
 
         return cls(

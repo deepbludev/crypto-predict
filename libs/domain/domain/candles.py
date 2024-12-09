@@ -123,13 +123,15 @@ class Candle(CandleProps):
     def same_window(self, other: Candle | None) -> bool:
         """
         Check if the candle is in the same window as the other given candle.
-        Candles must have the same symbol in order to be considered in the same window.
+        Candles must have the same symbol and window size in order to be considered
+        in the same window.
         """
         if not other:
             return False
 
         return (
             self.symbol == other.symbol
+            and self.window_size == other.window_size
             and self.start == other.start
             and self.end == other.end
         )
