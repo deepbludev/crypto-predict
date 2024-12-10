@@ -67,10 +67,6 @@ def is_trade(response: dict[str, Any]) -> bool:
     return response.get("channel") == "trade"
 
 
-def is_heartbeat(response: dict[str, Any]) -> bool:
-    return response.get("channel") == "heartbeat"
-
-
 class KrakenTradesWsClient(TradesWsClient):
     """
     Kraken Websocket TradesAPI v2 implementation using async websockets.
@@ -119,18 +115,18 @@ class KrakenTradesWsClient(TradesWsClient):
             try:
                 message = await ws.recv()
                 res = json.loads(message)
+                channel = res.get("channel")
+                if channel != "trade":
+                    logger.info(f"[{self.exchange}] {channel}")
+                    continue
 
-                match channel := res.get("channel"):
-                    case "trade":
-                        trades = res.get("data", [])
-                        for trade in trades:
-                            try:
-                                yield KrakenTrade.parse(trade).into()
-                            except ValidationError as e:
-                                msg = f"[{self.exchange}] Error validating trade: {e}"
-                                logger.error(msg)
-                    case _:
-                        logger.info(f"[{self.exchange}] {channel}")
+                trades = res.get("data", [])
+                for trade in trades:
+                    try:
+                        yield KrakenTrade.parse(trade).into()
+                    except ValidationError as e:
+                        msg = f"[{self.exchange}] Error validating trade: {e}"
+                        logger.error(msg)
 
             except ConnectionClosedOK:
                 # Normal closure
