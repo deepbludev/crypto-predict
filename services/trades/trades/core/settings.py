@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     kraken_ws_endpoint: str = "wss://ws.kraken.com/v2"
     kraken_rest_endpoint: str = "https://api.kraken.com/0/public/Trades"
     kraken_backfill_trades_since: datetime | None = None  # None means no backfill
+    kraken_consume_live_trades: bool = True
 
 
 @lru_cache()

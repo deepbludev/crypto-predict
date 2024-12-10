@@ -19,6 +19,9 @@ async def consume_live_trades_from_kraken(
     It runs continuously, until the service is stopped.
     """
     settings = trades_settings()
+    if not settings.kraken_consume_live_trades:
+        return
+
     topic = stream_app.topic(name=settings.topic, value_serializer="json")
     try:
         with stream_app.get_producer() as producer:
@@ -52,11 +55,13 @@ async def consume_historical_trades_from_kraken(
 
     It runs until the historical trades are exhausted.
     """
-    # TODO: Implement
-    since = trades_settings().kraken_backfill_trades_since
+    settings = trades_settings()
+    since = settings.kraken_backfill_trades_since
     if not since:
         return
 
-    ns = since.timestamp() * 1_000_000_000  # nanoseconds
+    ns = int(since.timestamp() * 1_000_000_000)  # nanoseconds
     logger.info(f"Consuming historical trades from Kraken since {since} ({ns} ns)")
+
+    # TODO: Implement
     pass
