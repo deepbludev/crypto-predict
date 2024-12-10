@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from loguru import logger
 
 from trades.core.settings import trades_settings
-from trades.exchanges.kraken import KrakenTradesWsClient
+from trades.exchanges.kraken import KrakenTradesRestClient, KrakenTradesWsClient
 from trades.stream import (
     consume_historical_trades,
     consume_live_trades,
@@ -51,13 +51,21 @@ async def startup(app: FastAPI):
 
     # 2. Connect to the websocket clients
     app.state.ws_clients = [
-        kraken_ws := await KrakenTradesWsClient(
+        kraken_ws := KrakenTradesWsClient(
             url=settings.kraken_ws_endpoint,
             symbols=settings.symbols,
-        ).connect(),
+        ),
     ]
 
-    # 3. Start the streams as a background tasks
+    # 3. Connect to the REST clients
+    app.state.rest_clients = [
+        kraken_rest := KrakenTradesRestClient(
+            url=settings.kraken_rest_endpoint,
+            symbols=settings.symbols,
+        ),
+    ]
+
+    # 4. Start the streams as a background tasks
     live_streams = [
         # Kraken
         consume_live_trades(
@@ -71,6 +79,7 @@ async def startup(app: FastAPI):
         # Kraken
         consume_historical_trades(
             stream_app,
+            exchange_client=kraken_rest,
             since=settings.kraken_backfill_trades_since,
         ),
         # Add other exchanges here...

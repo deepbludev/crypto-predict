@@ -1,11 +1,9 @@
-"""
-Kraken websocket API implementation using async websockets.
-"""
-
+import asyncio
 import json
 from datetime import datetime
-from typing import Any, AsyncIterator
+from typing import Any, AsyncIterator, Self, cast
 
+import httpx
 import websockets
 from loguru import logger
 from pydantic import Field, ValidationError, field_serializer
@@ -14,7 +12,17 @@ from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
 from domain.core import Schema
 from domain.trades import Exchange, Symbol, Trade
 
-from .client import TradesWsClient
+from .client import TradesRestClient, TradesWsClient
+
+type KrakenRestResponseTrade = tuple[
+    str,  # price
+    str,  # qty
+    float,  # timestamp in seconds
+    str,  # buy/sell
+    str,  # market/limit
+    str,  # misc
+    int,  # ordertxid
+]
 
 
 class KrakenTrade(Schema):
@@ -38,6 +46,15 @@ class KrakenTrade(Schema):
     def into(self) -> Trade:
         return Trade.parse(
             self.model_dump(by_alias=True) | {"exchange": Exchange.KRAKEN}
+        )
+
+    @classmethod
+    def from_rest(cls, symbol: str, trade: KrakenRestResponseTrade) -> Self:
+        return cls(
+            symbol=symbol,
+            price=float(trade[0]),
+            qty=float(trade[1]),
+            timestamp=datetime.fromtimestamp(float(trade[2])),
         )
 
     @classmethod
@@ -65,7 +82,11 @@ class KrakenTradesWsClient(TradesWsClient):
         converting them to the format expected by the Kraken API.
         """
         self.kraken_symbols = list(map(KrakenTrade.to_kraken_symbol, symbols))
-        super().__init__(name=Exchange.KRAKEN.value, url=url, symbols=symbols)
+        super().__init__(
+            exchange=Exchange.KRAKEN,
+            url=url,
+            symbols=symbols,
+        )
 
     async def connect(self):
         """
@@ -84,7 +105,7 @@ class KrakenTradesWsClient(TradesWsClient):
         }
         await ws.send(json.dumps(subscribe_msg))
         logger.info(
-            f"Subscribed to {[s.value for s in self.symbols]} trades from Kraken"
+            f"[{self.exchange}] Subscribed to {[s.value for s in self.symbols]}"
         )
         return self
 
@@ -99,28 +120,114 @@ class KrakenTradesWsClient(TradesWsClient):
                 message = await ws.recv()
                 res = json.loads(message)
 
-                if not is_trade(res):
-                    message_type = "Heartbeat" if is_heartbeat(res) else "Non-trade"
-                    logger.info(f"[{self.name}] {message_type}")
-                    continue
-
-                trades = res.get("data", [])
-                for trade in trades:
-                    try:
-                        yield KrakenTrade.parse(trade).into()
-                    except ValidationError as e:
-                        logger.error(f"[{self.name}] Error validating trade: {e}")
+                match channel := res.get("channel"):
+                    case "trade":
+                        trades = res.get("data", [])
+                        for trade in trades:
+                            try:
+                                yield KrakenTrade.parse(trade).into()
+                            except ValidationError as e:
+                                msg = f"[{self.exchange}] Error validating trade: {e}"
+                                logger.error(msg)
+                    case _:
+                        logger.info(f"[{self.exchange}] {channel}")
 
             except ConnectionClosedOK:
                 # Normal closure
-                logger.info(f"[{self.name}] WebSocket connection closed normally")
+                logger.info(f"[{self.exchange}] WebSocket connection closed normally")
                 break
             except ConnectionClosedError as e:
                 # Abnormal closure
                 logger.error(
-                    f"[{self.name}] WebSocket connection closed with error: {e}"
+                    f"[{self.exchange}] WebSocket connection closed with error: {e}"
                 )
                 break
             except Exception as e:
-                logger.error(f"[{self.name}] Error processing message: {e}")
+                logger.error(f"[{self.exchange}] Error processing message: {e}")
                 continue
+
+
+class KrakenTradesRestClient(TradesRestClient):
+    """
+    Kraken REST TradesAPI implementation using async http client.
+    """
+
+    def __init__(self, symbols: list[Symbol], url: str):
+        """
+        Initializes the Kraken REST API with the given symbols,
+        converting them to the format expected by the Kraken API.
+        """
+        self.kraken_symbols = list(map(KrakenTrade.to_kraken_symbol, symbols))
+        self.client = httpx.AsyncClient(timeout=httpx.Timeout(60.0, connect=30.0))
+        super().__init__(
+            exchange=Exchange.KRAKEN,
+            url=url,
+            symbols=symbols,
+        )
+
+    async def stream_trades(self, since: datetime) -> AsyncIterator[Trade]:
+        """
+        Streams trades from the exchange for all symbols concurrently, starting
+        from the given datetime, and stopping when no more trades are found.
+        """
+
+        since_ns = int(since.timestamp() * 1_000_000_000)  # nanoseconds
+        try:
+            # fetch trades for each symbol concurrently
+            results = await asyncio.gather(
+                *(
+                    self.fetch_all_trades(symbol, since_ns)
+                    for symbol in self.kraken_symbols
+                ),
+                return_exceptions=True,
+            )
+
+            # log errors and continue
+            if errors := [e for e in results if isinstance(e, Exception)]:
+                for e in errors:
+                    logger.error(f"[{self.exchange}] Error fetching trades: {e}")
+
+            # collect all trades
+            trades = (
+                cast(Trade, trade)
+                for result in results
+                if not isinstance(result, Exception)
+                for trade in result  # type: ignore
+            )
+
+            # sort trades by timestamp and yield
+            for trade in sorted(trades, key=lambda t: t.timestamp):
+                yield trade
+
+        except Exception as e:
+            logger.error(f"[{self.exchange}] Error fetching trades: {e}")
+
+    async def fetch_all_trades(self, kraken_symbol: str, since: int):
+        """
+        Fetches all historical trades for a given symbol from the exchange.
+        It iterates the fetching until no more trades are found.
+        """
+        headers = {"Accept": "application/json"}
+
+        # fetch trades from the exchange
+        params = {"pair": kraken_symbol, "since": since}
+        res = await self.client.get(self.url, params=params, headers=headers)
+        data = res.json()["result"]
+
+        # extract data and last trade timestamp
+        trades_data, last = data[kraken_symbol], data["last"]
+        last_on = datetime.fromtimestamp(float(last) / 1e9)
+
+        logger.info(
+            f"[{self.exchange}] {kraken_symbol}: "
+            f"Fetched {len(trades_data)} historical trades. "
+            f"Last trade on: {last_on} ({last} ns)"
+        )
+
+        # return converted Trade objects
+        return (
+            KrakenTrade.from_rest(kraken_symbol, trade).into() for trade in trades_data
+        )
+
+        # return sorted by timestamp
+        # return sorted(trades, key=lambda t: t.timestamp)

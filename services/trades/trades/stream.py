@@ -5,7 +5,7 @@ import quixstreams as qs
 from loguru import logger
 
 from trades.core.settings import trades_settings
-from trades.exchanges.client import TradesWsClient
+from trades.exchanges.client import TradesRestClient, TradesWsClient
 
 
 async def consume_live_trades(
@@ -20,36 +20,39 @@ async def consume_live_trades(
     It runs continuously, until the service is stopped.
     """
     settings = trades_settings()
+    exchange = exchange_client.exchange
     if not live_trades_active:
+        logger.info(f"[{exchange}] Live trades are not active. Skipping...")
         return
 
-    topic = stream_app.topic(name=settings.topic, value_serializer="json")
     try:
+        logger.info(f"[{exchange}] Consuming live trades")
+        await exchange_client.connect()
+        trades_topic = stream_app.topic(name=settings.topic, value_serializer="json")
         with stream_app.get_producer() as producer:
             async for trade in exchange_client.stream_trades():
-                message = topic.serialize(
-                    key=trade.symbol,
-                    value=trade.unpack(),
-                )
-                producer.produce(topic=topic.name, value=message.value, key=message.key)
+                msg = trades_topic.serialize(key=trade.symbol, value=trade.unpack())
+                producer.produce(topic=trades_topic.name, value=msg.value, key=msg.key)
                 logger.info(
-                    f"[{trade.exchange.value}] Live Trade: "
+                    f"[{trade.exchange}] Live Trade: "
                     f"{trade.symbol.value} {trade.price} "
                     f"({datetime.fromtimestamp(trade.timestamp/1000)})"
                 )
 
     except asyncio.CancelledError:
-        logger.info(f"[{exchange_client.name}] Trade processing task was cancelled")
+        logger.info(f"[{exchange_client.exchange}] Trade processing task was cancelled")
         raise
     except Exception as e:
-        logger.error(f"[{exchange_client.name}] Error processing trades: {e}")
+        logger.error(f"[{exchange_client.exchange}] Error processing trades: {e}")
     finally:
-        logger.info(f"[{exchange_client.name}] Trade processing task has terminated")
+        logger.info(
+            f"[{exchange_client.exchange}] Trade processing task has terminated"
+        )
 
 
 async def consume_historical_trades(
     stream_app: qs.Application,
-    # TODO: exchange client
+    exchange_client: TradesRestClient,
     since: datetime | None = None,
 ):
     """
@@ -58,11 +61,13 @@ async def consume_historical_trades(
 
     It runs until the historical trades are exhausted.
     """
+    exchange = exchange_client.exchange
     if not since:
+        logger.info(f"[{exchange}] Historical trades are not active. Skipping...")
         return
 
-    ns = int(since.timestamp() * 1_000_000_000)  # nanoseconds
-    logger.info(f"Consuming historical trades from Kraken since {since} ({ns} ns)")
+    logger.info(f"[{exchange}] Consuming historical trades: {since}")
 
-    # TODO: Implement
-    pass
+    async for trade in exchange_client.stream_trades(since):
+        logger.info(f"[{exchange}] Historical Trade: {trade}")
+        pass

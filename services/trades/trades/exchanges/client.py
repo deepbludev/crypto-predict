@@ -1,33 +1,28 @@
 import abc
+from datetime import datetime
 from typing import AsyncIterator, Self
 
 from loguru import logger
 from websockets.asyncio.client import ClientConnection
 
-from domain.trades import Symbol, Trade
+from domain.trades import Exchange, Symbol, Trade
 
 
 class TradesWsClient(abc.ABC):
     """
-    Abstract base class for websocket clients.
+    Abstract base class for websocket exchange clients.
+    It establishes a websocket connection and subscribes to the exchange's
+    trade channel and streams them asynchronously.
     """
 
-    name: str
+    exchange: Exchange
     url: str
     symbols: list[Symbol]
     ws: ClientConnection | None
 
-    def __init__(
-        self,
-        name: str,
-        symbols: list[Symbol],
-        url: str,
-    ):
-        """
-        Initializes the websocket client with the given symbols,
-        converting them to the format expected by the Kraken API.
-        """
-        self.name = name
+    def __init__(self, exchange: Exchange, symbols: list[Symbol], url: str):
+        """Initializes the websocket client"""
+        self.exchange = exchange
         self.url = url
         self.symbols = symbols
         self.ws = None
@@ -62,6 +57,32 @@ class TradesWsClient(abc.ABC):
         Closes the websocket connection.
         """
         if self.ws:
-            logger.info(f"Closing {self.name} websocket connection")
+            logger.info(f"Closing {self.exchange} websocket connection")
             await self.ws.close()
             self.ws = None
+
+
+class TradesRestClient(abc.ABC):
+    """
+    Abstract base class for REST exchange clients.
+    It fetches historical trades from the exchange via the exchange's REST API
+    and streams them asynchronously.
+    """
+
+    exchange: str
+    url: str
+    symbols: list[Symbol]
+
+    def __init__(self, exchange: Exchange, symbols: list[Symbol], url: str):
+        """Initializes the REST client"""
+        self.exchange = exchange
+        self.symbols = symbols
+        self.url = url
+
+    @abc.abstractmethod
+    def stream_trades(self, since: datetime) -> AsyncIterator[Trade]:
+        """
+        Fetches historical trades from the exchange since the given datetime and
+        yields them as Trade objects asynchronously.
+        """
+        pass
