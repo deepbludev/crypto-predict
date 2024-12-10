@@ -199,16 +199,15 @@ class KrakenTradesRestClient(TradesRestClient):
             res = await self.client.get(self.url, params=params, headers=headers)
             data = res.json()
 
-            # Check for error response
-            if "error" in data and data["error"]:
+            result, error = data.get("result"), data.get("error")
+            if error:
                 raise ValueError(f"API error: {data['error']}")
-
-            if "result" not in data:
+            if not result:
                 raise ValueError(f"Unexpected API response format: {data}")
 
             # Extract data and last trade timestamp
-            trades_data = data["result"].get(kraken_symbol, [])
-            last = int(data["result"].get("last", last))
+            trades_data = result.get(kraken_symbol, [])
+            last = int(result.get("last", last))
 
             last_trade_on = f"Last trade on: {to_dt(last)} ({last} ns)"
             logger.info(
@@ -216,8 +215,8 @@ class KrakenTradesRestClient(TradesRestClient):
                 f"Fetched {len(trades_data)} historical trades. {last_trade_on}"
             )
 
-            # Yield converted Trade objects
             if last >= stop_ns:
+                # stop if the current time is reached
                 logger.info(
                     f"[{self.exchange}] ({kraken_symbol}): "
                     f"Finished fetching trades. {last_trade_on}"
@@ -225,11 +224,11 @@ class KrakenTradesRestClient(TradesRestClient):
                 break
 
             for t in trades_data:
+                # yield converted Trade objects
                 try:
-                    trade = KrakenTrade.from_rest(kraken_symbol, t).into()
-                    yield trade
+                    yield KrakenTrade.from_rest(kraken_symbol, t).into()
                 except ValidationError as e:
-                    msg = f"[{self.exchange}] Error validating trade: {e}"
+                    msg = f"[{self.exchange}] Error validating trade {t}: {e}"
                     logger.error(msg)
 
 
