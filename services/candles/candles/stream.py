@@ -71,5 +71,7 @@ def generate_candles_from_trades(stream_app: qs.Application):
 
 def log_candle(candle: dict[str, Any]):
     """Log the candle."""
-    candle_str = f"{candle['symbol']}-{candle['timeframe']}-{candle['timestamp']}"
+    candle_str = (
+        f"{candle['symbol'].value}-{candle['timeframe'].value}-{candle['timestamp']}"
+    )
     logger.info("Candle: " + candle_str)

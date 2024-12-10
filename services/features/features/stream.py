@@ -25,12 +25,12 @@ def generate_features_from_candles_and_load_to_feature_store(
     """
     Generates features from candles and loads them to the feature store.
     """
-    input_topic = features_settings().input_topic
+    ta_topic = features_settings().input_topic
     fs = HopsworksFeatureStoreSink().connect()
     (
-        stream_app.dataframe(stream_app.topic(input_topic, value_deserializer="json"))
+        stream_app.dataframe(stream_app.topic(ta_topic, value_deserializer="json"))
         .apply(TechnicalAnalysis.model_validate)
-        .update(lambda ta: logger.info(f"Reading ta: {ta.key()}"))
+        .update(lambda ta: logger.info(f"Reading Technical Analysis: {ta.key()}"))
         .apply(TechnicalAnalysis.serialize)
         .sink(fs)
     )

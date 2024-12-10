@@ -39,7 +39,7 @@ def do_ta_from_candles(stream_app: qs.Application):
         .apply(generate_ta, stateful=True)
         .apply(Candle.serialize)
         .to_topic(stream_app.topic(name=settings.output_topic))
-        .update(lambda ta: logger.info(f"Produced ta: {ta}"))
+        .update(lambda ta: logger.info(f"Technical analysis: {ta}"))
     )
 
     return stream_app
