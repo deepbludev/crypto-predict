@@ -8,8 +8,8 @@ from loguru import logger
 from trades.core.settings import trades_settings
 from trades.exchanges.kraken import KrakenTradesWsClient
 from trades.stream import (
-    consume_historical_trades_from_kraken,
-    consume_live_trades_from_kraken,
+    consume_historical_trades,
+    consume_live_trades,
 )
 
 
@@ -58,13 +58,30 @@ async def startup(app: FastAPI):
     ]
 
     # 3. Start the streams as a background tasks
-    trade_tasks = [
-        # Live trades
-        consume_live_trades_from_kraken(kraken_ws, stream_app),
-        # Historical trades
-        consume_historical_trades_from_kraken(stream_app),
+    live_streams = [
+        # Kraken
+        consume_live_trades(
+            stream_app,
+            exchange_client=kraken_ws,
+            live_trades_active=settings.kraken_consume_live_trades,
+        ),
+        # Add other exchanges here...
     ]
-    app.state.async_tasks = [*map(asyncio.create_task, trade_tasks)]
+    historical_streams = [
+        # Kraken
+        consume_historical_trades(
+            stream_app,
+            since=settings.kraken_backfill_trades_since,
+        ),
+        # Add other exchanges here...
+    ]
+
+    app.state.async_tasks = [
+        *map(
+            asyncio.create_task,
+            live_streams + historical_streams,
+        )
+    ]
 
 
 async def shutdown(app: FastAPI):
