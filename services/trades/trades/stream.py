@@ -40,14 +40,12 @@ async def consume_live_trades(
                 )
 
     except asyncio.CancelledError:
-        logger.info(f"[{exchange_client.exchange}] Trade processing task was cancelled")
+        logger.info(f"[{exchange}] Live Trade processing task was cancelled")
         raise
     except Exception as e:
-        logger.error(f"[{exchange_client.exchange}] Error processing trades: {e}")
+        logger.error(f"[{exchange}] Error processing live trades: {e}")
     finally:
-        logger.info(
-            f"[{exchange_client.exchange}] Trade processing task has terminated"
-        )
+        logger.info(f"[{exchange}] Live Trade processing task has terminated")
 
 
 async def consume_historical_trades(
@@ -59,15 +57,38 @@ async def consume_historical_trades(
     Async task that consumes historical trades from the given exchange and
     produces them to the messagebus.
 
-    It runs until the historical trades are exhausted.
+    It runs until the historical trades before the current time are exhausted.
     """
+    settings = trades_settings()
     exchange = exchange_client.exchange
+    historical_topic_name = f"{settings.topic}_historical"
+
     if not since:
         logger.info(f"[{exchange}] Historical trades are not active. Skipping...")
         return
+    try:
+        logger.info(f"[{exchange}] Consuming historical trades: {since}")
+        historical_topic = stream_app.topic(
+            name=historical_topic_name,
+            value_serializer="json",
+        )
 
-    logger.info(f"[{exchange}] Consuming historical trades: {since}")
+        with stream_app.get_producer() as producer:
+            async for trade in exchange_client.stream_trades(since):
+                msg = historical_topic.serialize(key=trade.symbol, value=trade.unpack())
+                producer.produce(
+                    topic=historical_topic.name, value=msg.value, key=msg.key
+                )
 
-    async for trade in exchange_client.stream_trades(since):
-        logger.info(f"[{exchange}] Historical Trade: {trade}")
-        pass
+                logger.info(
+                    f"[{trade.exchange}] Historical Trade: "
+                    f"{trade.symbol.value} {trade.price} "
+                    f"({datetime.fromtimestamp(trade.timestamp/1000)})"
+                )
+    except asyncio.CancelledError:
+        logger.info(f"[{exchange}] Historical Trade task was cancelled")
+        raise
+    except Exception as e:
+        logger.error(f"[{exchange}] Error processing historical trades: {e}")
+    finally:
+        logger.info(f"[{exchange}] Historical Trade task has terminated")
