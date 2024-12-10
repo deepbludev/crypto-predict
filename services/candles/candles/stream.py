@@ -49,7 +49,7 @@ def generate_candles_from_trades(stream_app: qs.Application):
             )
         )
         # 2. Validate the trade
-        .apply(lambda trade: Trade.model_validate(trade or {}))
+        .apply(lambda trade: Trade.parse(trade or {}))
         # 3. Reduce trades into candles using tumbling windows
         .tumbling_window(duration_ms=settings.timeframe.to_sec() * 1000)
         .reduce(
@@ -61,7 +61,6 @@ def generate_candles_from_trades(stream_app: qs.Application):
         # 4. Emit the partial candle
         .current()
         # 5. Close the candle window using the window start and end timestamps
-        .update(lambda res: logger.info(f"Current candle: {res['value']['timeframe']}"))
         .apply(
             lambda res: Candle(**res["value"])
             .close_window(res["start"], res["end"])
@@ -75,7 +74,11 @@ def generate_candles_from_trades(stream_app: qs.Application):
             ),
         )
         # 7. Log the produced candle
-        .update(lambda candle: logger.info(f"Produced candle: {candle}"))
+        .update(
+            lambda c: logger.info(
+                f"Candle: {c['symbol'].value}-{c['timeframe'].value}-{c['timestamp']}"
+            )
+        )
     )
 
     return stream_app

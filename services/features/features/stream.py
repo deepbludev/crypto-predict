@@ -31,7 +31,7 @@ def generate_features_from_candles_and_load_to_feature_store(
         stream_app.dataframe(stream_app.topic(input_topic, value_deserializer="json"))
         .apply(TechnicalAnalysis.model_validate)
         .update(lambda ta: logger.info(f"Reading ta: {ta.key()}"))
-        .apply(lambda ta: ta.unpack())
+        .apply(TechnicalAnalysis.serialize)
         .sink(fs)
     )
 

@@ -10,13 +10,14 @@ from typing import Any, AsyncIterator
 import quixstreams as qs
 import websockets
 from loguru import logger
-from pydantic import BaseModel, Field, ValidationError, field_serializer
+from pydantic import Field, ValidationError, field_serializer
 from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
 
+from domain.core import Schema
 from domain.trades import Exchange, Symbol, Trade
 
 
-class KrakenTrade(BaseModel):
+class KrakenTrade(Schema):
     """
     Represents a trade snapshot from the Kraken API for a given symbol.
     """
@@ -35,7 +36,7 @@ class KrakenTrade(BaseModel):
         return int(dt.timestamp() * 1000)
 
     def into(self) -> Trade:
-        return Trade.model_validate(
+        return Trade.parse(
             self.model_dump(by_alias=True) | {"exchange": Exchange.KRAKEN}
         )
 
@@ -112,7 +113,7 @@ class KrakenWebsocketAPI:
                 trades = response.get("data", [])
                 for trade in trades:
                     try:
-                        yield KrakenTrade.model_validate(trade).into()
+                        yield KrakenTrade.parse(trade).into()
                     except ValidationError as e:
                         logger.error(f"Error validating trade from Kraken: {e}")
 

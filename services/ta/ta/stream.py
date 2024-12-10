@@ -39,11 +39,11 @@ def do_ta_from_candles(stream_app: qs.Application):
                 value_deserializer="json",
             )
         )
-        .apply(lambda candle: Candle.model_validate(candle))
+        .apply(Candle.parse)
         .filter(is_compatible_with_last_candle_if_any, stateful=True)
         .apply(update_state_with_latest, stateful=True)
         .apply(generate_ta, stateful=True)
-        .apply(lambda ta: ta.unpack())
+        .apply(Candle.serialize)
         .to_topic(
             topic=stream_app.topic(
                 name=settings.output_topic,
