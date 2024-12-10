@@ -34,3 +34,5 @@ def generate_features_from_candles_and_load_to_feature_store(
         .apply(lambda ta: ta.unpack())
         .sink(fs)
     )
+
+    return stream_app
