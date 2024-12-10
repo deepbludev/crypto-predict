@@ -1,4 +1,3 @@
-from operator import itemgetter as get
 from typing import Any, cast
 
 import quixstreams as qs
@@ -118,12 +117,7 @@ def generate_ta(latest: Candle, state: qs.State) -> TechnicalAnalysis:
     return TechnicalAnalysis.calc(
         candle=latest,
         **{
-            k: map(get(k), candles)
-            for k in (
-                "high",
-                "low",
-                "close",
-                "volume",
-            )
+            metric: (candle[metric] for candle in candles)
+            for metric in ("high", "low", "close", "volume")
         },
     )
