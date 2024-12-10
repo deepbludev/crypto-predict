@@ -33,23 +33,13 @@ def do_ta_from_candles(stream_app: qs.Application):
     """
     settings = ta_settings()
     (
-        stream_app.dataframe(
-            topic=stream_app.topic(
-                name=settings.input_topic,
-                value_deserializer="json",
-            )
-        )
+        stream_app.dataframe(topic=stream_app.topic(name=settings.input_topic))
         .apply(Candle.parse)
         .filter(is_compatible_with_last_candle_if_any, stateful=True)
         .apply(update_state_with_latest, stateful=True)
         .apply(generate_ta, stateful=True)
         .apply(Candle.serialize)
-        .to_topic(
-            topic=stream_app.topic(
-                name=settings.output_topic,
-                value_serializer="json",
-            )
-        )
+        .to_topic(stream_app.topic(name=settings.output_topic))
         .update(lambda ta: logger.info(f"Produced ta: {ta}"))
     )
 

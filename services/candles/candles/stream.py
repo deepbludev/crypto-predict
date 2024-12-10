@@ -40,45 +40,36 @@ def generate_candles_from_trades(stream_app: qs.Application):
         return value["timestamp"]
 
     (
-        # 1. Read the trades from the messagebus
         stream_app.dataframe(
             topic=stream_app.topic(
-                name=settings.input_topic,
-                value_deserializer="json",
+                settings.input_topic,
                 timestamp_extractor=extract_ts,
             )
         )
-        # 2. Validate the trade
         .apply(lambda trade: Trade.parse(trade or {}))
-        # 3. Reduce trades into candles using tumbling windows
+        # reduce trades into candles using tumbling windows and emit the partial candle
         .tumbling_window(duration_ms=settings.timeframe.to_sec() * 1000)
         .reduce(
-            # 3.1. Initialize the candle with the first trade
+            # initialize the candle with the first trade
             initializer=lambda trade: Candle.init(settings.timeframe, trade).unpack(),
-            # 3.2. Update the candle with the next trade
-            reducer=lambda candle, trade: Candle(**candle).update(trade).unpack(),
+            # update the candle with the next trade
+            reducer=lambda candle, trade: Candle.parse(candle).update(trade).unpack(),
         )
-        # 4. Emit the partial candle
         .current()
-        # 5. Close the candle window using the window start and end timestamps
+        # close the candle window
         .apply(
-            lambda res: Candle(**res["value"])
-            .close_window(res["start"], res["end"])
+            lambda result: Candle.parse(result["value"])
+            .close_window(result["start"], result["end"])
             .unpack()
         )
-        # 6. Produce the candle to the output topic
-        .to_topic(
-            topic=stream_app.topic(
-                name=settings.output_topic,
-                value_serializer="json",
-            ),
-        )
-        # 7. Log the produced candle
-        .update(
-            lambda c: logger.info(
-                f"Candle: {c['symbol'].value}-{c['timeframe'].value}-{c['timestamp']}"
-            )
-        )
+        .to_topic(stream_app.topic(name=settings.output_topic))
+        .update(log_candle)
     )
 
     return stream_app
+
+
+def log_candle(candle: dict[str, Any]):
+    """Log the candle."""
+    candle_str = f"{candle['symbol']}-{candle['timeframe']}-{candle['timestamp']}"
+    logger.info("Candle: " + candle_str)
