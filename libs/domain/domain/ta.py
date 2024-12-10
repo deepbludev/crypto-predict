@@ -25,7 +25,7 @@ class RSI(Schema):
     rsi_28: float
 
     @staticmethod
-    def calc_rsi(close: NDFloats) -> RSI:
+    def calc_rsi(close: Iterable[float]) -> RSI:
         """
         Calculate the Relative Strength Index (RSI) for the periods 9, 14, 21, 28 days
 
@@ -404,10 +404,10 @@ class TechnicalAnalysis(
     def calc(
         cls,
         candle: CandleProps,
-        high_values: Iterable[float],
-        low_values: Iterable[float],
-        close_values: Iterable[float],
-        volume_values: Iterable[float],
+        high: Iterable[float],
+        low: Iterable[float],
+        close: Iterable[float],
+        volume: Iterable[float],
     ) -> Self:
         """
         Calculate the technical analysis of a candle.
@@ -423,22 +423,21 @@ class TechnicalAnalysis(
         """
 
         # convert the values to numpy arrays
-        high, low, close, volume = [
-            np.array(list(v))
-            for v in [high_values, low_values, close_values, volume_values]
+        high_, low_, close_, volume_ = [
+            np.array(list(v)) for v in [high, low, close, volume]
         ]
 
         return cls(
             **candle.unpack(),
-            **cls.calc_rsi(close).unpack(),
-            **cls.calc_macd(close).unpack(),
-            **cls.calc_bbands(close).unpack(),
-            **cls.calc_stochrsi(close, period=10).unpack(),
-            **cls.calc_adx(high, low, close).unpack(),
-            **cls.calc_volume_ema(volume).unpack(),
-            **cls.calc_ichimoku(close).unpack(),
-            **cls.calc_mfi(high, low, close, volume).unpack(),
-            **cls.calc_atr(high, low, close).unpack(),
-            **cls.calc_roc(close).unpack(),
-            **cls.calc_sma(close).unpack(),
+            **cls.calc_rsi(close_).unpack(),
+            **cls.calc_macd(close_).unpack(),
+            **cls.calc_bbands(close_).unpack(),
+            **cls.calc_stochrsi(close_, period=10).unpack(),
+            **cls.calc_adx(high_, low_, close_).unpack(),
+            **cls.calc_volume_ema(volume_).unpack(),
+            **cls.calc_ichimoku(close_).unpack(),
+            **cls.calc_mfi(high_, low_, close_, volume_).unpack(),
+            **cls.calc_atr(high_, low_, close_).unpack(),
+            **cls.calc_roc(close_).unpack(),
+            **cls.calc_sma(close_).unpack(),
         )

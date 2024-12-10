@@ -1,3 +1,4 @@
+from operator import itemgetter as get
 from typing import Any, cast
 
 import quixstreams as qs
@@ -32,23 +33,17 @@ def do_ta_from_candles(stream_app: qs.Application):
     """
     settings = ta_settings()
     (
-        # 1. Read the candles from the messagebus
         stream_app.dataframe(
             topic=stream_app.topic(
                 name=settings.input_topic,
                 value_deserializer="json",
             )
         )
-        # 2. Validate the candle
-        .apply(lambda candle: Candle.model_validate(candle or {}))
-        # 3. Filter out candles that are not compatible with the latest candle
+        .apply(lambda candle: Candle.model_validate(candle))
         .filter(is_compatible_with_last_candle_if_any, stateful=True)
-        # 4. Update the state with the latest candle
         .apply(update_state_with_latest, stateful=True)
-        # 5. Generate technical analysis
-        .apply(do_ta_for_latest, stateful=True)
+        .apply(generate_ta, stateful=True)
         .apply(lambda ta: ta.unpack())
-        # 6. Produce the technical analysis to the output topic
         .to_topic(
             topic=stream_app.topic(
                 name=settings.output_topic,
@@ -124,14 +119,21 @@ def update_state_with_latest(latest: Candle, state: qs.State) -> Candle:
     return latest
 
 
-def do_ta_for_latest(latest: Candle, state: qs.State) -> TechnicalAnalysis:
-    """Generates technical indicators from a list of candles."""
-    candles_state = cast(list[dict[str, Any]], state.get("candles", default=[]))
-
+def generate_ta(latest: Candle, state: qs.State) -> TechnicalAnalysis:
+    """
+    Generates technical analysis using the latest candle
+    and the candles in the state.
+    """
+    candles = get_candle_state(state)
     return TechnicalAnalysis.calc(
         candle=latest,
-        high_values=(candle["high"] for candle in candles_state),
-        low_values=(candle["low"] for candle in candles_state),
-        close_values=(candle["close"] for candle in candles_state),
-        volume_values=(candle["volume"] for candle in candles_state),
+        **{
+            k: map(get(k), candles)
+            for k in (
+                "high",
+                "low",
+                "close",
+                "volume",
+            )
+        },
     )

@@ -85,6 +85,25 @@ services:
     networks:
       - cryptopredict-network
 
+  # ----------------------------------------
+  # --- Features service
+  # ----------------------------------------
+  features:
+    container_name: features
+    depends_on:
+      - redpanda
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile
+      args:
+        SERVICE_NAME: features
+        PORT: 8004
+    command: fastapi dev app/services/features/features --port 8004
+    ports:
+      - 8004:8004
+    networks:
+      - cryptopredict-network
+
     
   # ----------------------------------------
   # --- Messagebus

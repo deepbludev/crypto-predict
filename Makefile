@@ -44,9 +44,9 @@ clean:
 # ----------------------------------------
 # Services
 # ----------------------------------------
-SERVICES = trades candles ta
+SERVICES = trades candles ta features
 SERVICES_PATH = services/$(svc)/$(svc)
-PORTS = trades=8001 candles=8002 ta=8003
+PORTS = trades=8001 candles=8002 ta=8003 features=8004
 # Get the port for a service from the PORTS variable
 port_for_service = $(word 2,$(subst =, ,$(filter $(1)=%,$(PORTS))))
 
