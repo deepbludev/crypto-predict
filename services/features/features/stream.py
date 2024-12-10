@@ -1,7 +1,9 @@
 import quixstreams as qs
 from loguru import logger
 
+from domain.ta import TechnicalAnalysis
 from features.core.settings import features_settings
+from features.sinks.hopsworks import HopsworksFeatureStoreSink
 
 
 def run_stream(stream_app: qs.Application):
@@ -23,12 +25,12 @@ def generate_features_from_candles_and_load_to_feature_store(
     """
     Generates features from candles and loads them to the feature store.
     """
-    settings = features_settings()
-
-    # 1. Read the candles from the messagebus
-    stream_app.dataframe(
-        topic=stream_app.topic(
-            name=settings.input_topic,
-            value_deserializer="json",
-        )
-    ).update(lambda candle: logger.info(f"Current candle: {candle}"))
+    input_topic = features_settings().input_topic
+    fs = HopsworksFeatureStoreSink().connect()
+    (
+        stream_app.dataframe(stream_app.topic(input_topic, value_deserializer="json"))
+        .apply(TechnicalAnalysis.model_validate)
+        .update(lambda ta: logger.info(f"Reading ta: {ta.key()}"))
+        .apply(lambda ta: ta.unpack())
+        .sink(fs)
+    )

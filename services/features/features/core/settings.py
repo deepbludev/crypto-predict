@@ -11,11 +11,14 @@ class Settings(BaseSettings):
         env_prefix="features_",
     )
 
+    # broker settings
     broker_address: str = "localhost:19092"
     consumer_group: str = "cg_features"
     input_topic: str = "ta"
+
+    # feature group settings
     fg_name: str = "technical_analysis"
-    fg_version: str = "1"
+    fg_version: int = 1
     fg_pk: list[str] = ["symbol", "timeframe"]
     fg_event_time: str = "timestamp"
 

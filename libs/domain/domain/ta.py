@@ -400,6 +400,9 @@ class TechnicalAnalysis(
     - Simple Moving Average (SMA at 7, 14, 21, 28 days)
     """
 
+    def key(self):
+        return f"{self.symbol.value}-{self.timeframe.value}-{self.timestamp}"
+
     @classmethod
     def calc(
         cls,
