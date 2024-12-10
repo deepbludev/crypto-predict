@@ -1,7 +1,7 @@
 import asyncio
 import json
 from datetime import datetime
-from typing import Any, AsyncIterator, Self, cast
+from typing import Any, AsyncIterator, Self
 
 import httpx
 import websockets
@@ -149,7 +149,7 @@ class KrakenTradesWsClient(TradesWsClient):
 
 class KrakenTradesRestClient(TradesRestClient):
     """
-    Kraken REST TradesAPI implementation using async http client.
+    Kraken REST TradesAPI implementation using async HTTP client.
     """
 
     def __init__(self, symbols: list[Symbol], url: str):
@@ -167,48 +167,37 @@ class KrakenTradesRestClient(TradesRestClient):
 
     async def stream_trades(self, since: datetime) -> AsyncIterator[Trade]:
         """
-        Streams trades from the exchange for all symbols concurrently, starting
-        from the given datetime, and stopping when no more trades are found.
+        Streams trades from the exchange for all symbols sequentially,
+        starting from the given datetime, and yielding trades as they are fetched.
+        It stops when the current time is reached.
         """
+        stop = datetime.now()
+        for kraken_symbol in self.kraken_symbols:
+            async for trade in self.stream_trades_for_symbol(
+                kraken_symbol,
+                since=since,
+                stop=stop,
+            ):
+                yield trade
 
-        since_ns = int(since.timestamp() * 1_000_000_000)  # nanoseconds
-        # fetch trades for each symbol concurrently
-        results = await asyncio.gather(
-            *(
-                self.fetch_all_trades(symbol, since_ns)
-                for symbol in self.kraken_symbols
-            ),
-            return_exceptions=True,
-        )
-        symbol_results = list(zip(self.kraken_symbols, results, strict=False))
-
-        # log errors and continue
-        if errors := [
-            (symbol, e) for symbol, e in symbol_results if isinstance(e, Exception)
-        ]:
-            for symbol, e in errors:
-                logger.error(f"[{self.exchange}] ({symbol}) Error fetching trades: {e}")
-
-        # collect all trades
-        trades = (
-            cast(Trade, trade)
-            for result in results
-            if not isinstance(result, Exception)
-            for trade in result  # type: ignore
-        )
-
-        # sort trades by timestamp and yield
-        for trade in sorted(trades, key=lambda t: t.timestamp):
-            yield trade
-
-    async def fetch_all_trades(self, kraken_symbol: str, since: int):
+    async def stream_trades_for_symbol(
+        self, kraken_symbol: str, since: datetime, stop: datetime
+    ) -> AsyncIterator[Trade]:
         """
-        Fetches all historical trades for a given symbol from the exchange.
-        It iterates the fetching until no more trades are found.
+        Asynchronously fetches all historical trades for a given symbol
+        from the exchange, yielding trades as they are fetched.
+
+        It stops when the current time is reached.
         """
         headers = {"Accept": "application/json"}
 
-        async def fetch_trades(kraken_symbol: str, last: int):
+        since_ns, stop_ns = to_ns(since), to_ns(stop)
+        last = since_ns
+        logger.info(f"[{self.exchange}] ({kraken_symbol}) Fetching trades...")
+        while True:
+            # wait to avoid rate limiting
+            await asyncio.sleep(1)
+
             # fetch trades from the exchange
             params = {"pair": kraken_symbol, "since": last}
             res = await self.client.get(self.url, params=params, headers=headers)
@@ -221,30 +210,36 @@ class KrakenTradesRestClient(TradesRestClient):
             if "result" not in data:
                 raise ValueError(f"Unexpected API response format: {data}")
 
-            # extract data and last trade timestamp
-            trades_data, last = data["result"][kraken_symbol], data["result"]["last"]
-            last_on = datetime.fromtimestamp(float(last) / 1e9)
+            # Extract data and last trade timestamp
+            trades_data = data["result"].get(kraken_symbol, [])
+            last = int(data["result"].get("last", last))
 
+            last_trade_on = f"Last trade on: {to_dt(last)} ({last} ns)"
             logger.info(
                 f"[{self.exchange}] {kraken_symbol}: "
-                f"Fetched {len(trades_data)} historical trades. "
-                f"Last trade on: {last_on} ({last} ns)"
+                f"Fetched {len(trades_data)} historical trades. {last_trade_on}"
             )
 
-            # return converted Trade objects
-            trades = [
-                KrakenTrade.from_rest(kraken_symbol, trade).into()
-                for trade in trades_data
-            ]
-
-            return last, trades
-
-        fetched_trades: list[Trade] = []
-        last = since
-        while True:
-            last, trades = await fetch_trades(kraken_symbol, last)
-            await asyncio.sleep(1)  # avoid rate limiting
-            fetched_trades.extend(trades)
-            if not trades:
+            # Yield converted Trade objects
+            if last >= stop_ns:
+                logger.info(
+                    f"[{self.exchange}] ({kraken_symbol}): "
+                    f"Finished fetching trades. {last_trade_on}"
+                )
                 break
-        return fetched_trades
+
+            for t in trades_data:
+                try:
+                    trade = KrakenTrade.from_rest(kraken_symbol, t).into()
+                    yield trade
+                except ValidationError as e:
+                    msg = f"[{self.exchange}] Error validating trade: {e}"
+                    logger.error(msg)
+
+
+def to_ns(dt: datetime) -> int:
+    return int(dt.timestamp() * 1_000_000_000)
+
+
+def to_dt(ns: int) -> datetime:
+    return datetime.fromtimestamp(float(ns) / 1_000_000_000)
