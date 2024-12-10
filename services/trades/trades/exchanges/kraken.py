@@ -172,35 +172,34 @@ class KrakenTradesRestClient(TradesRestClient):
         """
 
         since_ns = int(since.timestamp() * 1_000_000_000)  # nanoseconds
-        try:
-            # fetch trades for each symbol concurrently
-            results = await asyncio.gather(
-                *(
-                    self.fetch_all_trades(symbol, since_ns)
-                    for symbol in self.kraken_symbols
-                ),
-                return_exceptions=True,
-            )
+        # fetch trades for each symbol concurrently
+        results = await asyncio.gather(
+            *(
+                self.fetch_all_trades(symbol, since_ns)
+                for symbol in self.kraken_symbols
+            ),
+            return_exceptions=True,
+        )
+        symbol_results = list(zip(self.kraken_symbols, results, strict=False))
 
-            # log errors and continue
-            if errors := [e for e in results if isinstance(e, Exception)]:
-                for e in errors:
-                    logger.error(f"[{self.exchange}] Error fetching trades: {e}")
+        # log errors and continue
+        if errors := [
+            (symbol, e) for symbol, e in symbol_results if isinstance(e, Exception)
+        ]:
+            for symbol, e in errors:
+                logger.error(f"[{self.exchange}] ({symbol}) Error fetching trades: {e}")
 
-            # collect all trades
-            trades = (
-                cast(Trade, trade)
-                for result in results
-                if not isinstance(result, Exception)
-                for trade in result  # type: ignore
-            )
+        # collect all trades
+        trades = (
+            cast(Trade, trade)
+            for result in results
+            if not isinstance(result, Exception)
+            for trade in result  # type: ignore
+        )
 
-            # sort trades by timestamp and yield
-            for trade in sorted(trades, key=lambda t: t.timestamp):
-                yield trade
-
-        except Exception as e:
-            logger.error(f"[{self.exchange}] Error fetching trades: {e}")
+        # sort trades by timestamp and yield
+        for trade in sorted(trades, key=lambda t: t.timestamp):
+            yield trade
 
     async def fetch_all_trades(self, kraken_symbol: str, since: int):
         """
@@ -209,25 +208,43 @@ class KrakenTradesRestClient(TradesRestClient):
         """
         headers = {"Accept": "application/json"}
 
-        # fetch trades from the exchange
-        params = {"pair": kraken_symbol, "since": since}
-        res = await self.client.get(self.url, params=params, headers=headers)
-        data = res.json()["result"]
+        async def fetch_trades(kraken_symbol: str, last: int):
+            # fetch trades from the exchange
+            params = {"pair": kraken_symbol, "since": last}
+            res = await self.client.get(self.url, params=params, headers=headers)
+            data = res.json()
 
-        # extract data and last trade timestamp
-        trades_data, last = data[kraken_symbol], data["last"]
-        last_on = datetime.fromtimestamp(float(last) / 1e9)
+            # Check for error response
+            if "error" in data and data["error"]:
+                raise ValueError(f"API error: {data['error']}")
 
-        logger.info(
-            f"[{self.exchange}] {kraken_symbol}: "
-            f"Fetched {len(trades_data)} historical trades. "
-            f"Last trade on: {last_on} ({last} ns)"
-        )
+            if "result" not in data:
+                raise ValueError(f"Unexpected API response format: {data}")
 
-        # return converted Trade objects
-        return (
-            KrakenTrade.from_rest(kraken_symbol, trade).into() for trade in trades_data
-        )
+            # extract data and last trade timestamp
+            trades_data, last = data["result"][kraken_symbol], data["result"]["last"]
+            last_on = datetime.fromtimestamp(float(last) / 1e9)
 
-        # return sorted by timestamp
-        # return sorted(trades, key=lambda t: t.timestamp)
+            logger.info(
+                f"[{self.exchange}] {kraken_symbol}: "
+                f"Fetched {len(trades_data)} historical trades. "
+                f"Last trade on: {last_on} ({last} ns)"
+            )
+
+            # return converted Trade objects
+            trades = [
+                KrakenTrade.from_rest(kraken_symbol, trade).into()
+                for trade in trades_data
+            ]
+
+            return last, trades
+
+        fetched_trades: list[Trade] = []
+        last = since
+        while True:
+            last, trades = await fetch_trades(kraken_symbol, last)
+            await asyncio.sleep(1)  # avoid rate limiting
+            fetched_trades.extend(trades)
+            if not trades:
+                break
+        return fetched_trades
