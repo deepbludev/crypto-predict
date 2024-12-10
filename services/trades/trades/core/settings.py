@@ -1,3 +1,4 @@
+from datetime import datetime
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -17,6 +18,11 @@ class Settings(BaseSettings):
     consumer_group: str = "cg_trades"
     topic: str = "trades"
     symbols: list[Symbol] = [Symbol.XRPUSD]
+
+    # kraken
+    kraken_ws_endpoint: str = "wss://ws.kraken.com/v2"
+    kraken_rest_endpoint: str = "https://api.kraken.com/0/public/Trades"
+    kraken_backfill_trades_since: datetime | None = None  # None means no backfill
 
 
 @lru_cache()

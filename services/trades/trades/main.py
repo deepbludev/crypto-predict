@@ -6,8 +6,11 @@ from fastapi import FastAPI
 from loguru import logger
 
 from trades.core.settings import trades_settings
-from trades.exchanges.kraken import KrakenWebsocketClient
-from trades.stream import consume_trades_from_kraken_ws
+from trades.exchanges.kraken import KrakenTradesWsClient
+from trades.stream import (
+    consume_historical_trades_from_kraken,
+    consume_live_trades_from_kraken,
+)
 
 
 @asynccontextmanager
@@ -48,12 +51,18 @@ async def startup(app: FastAPI):
 
     # 2. Connect to the websocket clients
     app.state.ws_clients = [
-        kraken_ws := await KrakenWebsocketClient(settings.symbols).connect(),
+        kraken_ws := await KrakenTradesWsClient(
+            url=settings.kraken_ws_endpoint,
+            symbols=settings.symbols,
+        ).connect(),
     ]
 
     # 3. Start the streams as a background tasks
     trade_tasks = [
-        consume_trades_from_kraken_ws(kraken_ws, stream_app),
+        # Live trades
+        consume_live_trades_from_kraken(kraken_ws, stream_app),
+        # Historical trades
+        consume_historical_trades_from_kraken(stream_app),
     ]
     app.state.async_tasks = [*map(asyncio.create_task, trade_tasks)]
 

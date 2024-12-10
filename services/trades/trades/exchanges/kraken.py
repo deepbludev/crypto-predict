@@ -14,7 +14,7 @@ from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
 from domain.core import Schema
 from domain.trades import Exchange, Symbol, Trade
 
-from .client import TradesWebsocketClient
+from .client import TradesWsClient
 
 
 class KrakenTrade(Schema):
@@ -54,26 +54,24 @@ def is_heartbeat(response: dict[str, Any]) -> bool:
     return response.get("channel") == "heartbeat"
 
 
-class KrakenWebsocketClient(TradesWebsocketClient):
-    _url = "wss://ws.kraken.com/v2"
+class KrakenTradesWsClient(TradesWsClient):
+    """
+    Kraken Websocket TradesAPI v2 implementation using async websockets.
+    """
 
-    def __init__(self, symbols: list[Symbol]):
+    def __init__(self, symbols: list[Symbol], url: str):
         """
         Initializes the Kraken websocket API with the given symbols,
         converting them to the format expected by the Kraken API.
         """
         self.kraken_symbols = list(map(KrakenTrade.to_kraken_symbol, symbols))
-        super().__init__(
-            name=Exchange.KRAKEN.value,
-            symbols=symbols,
-            url=self._url,
-        )
+        super().__init__(name=Exchange.KRAKEN.value, url=url, symbols=symbols)
 
     async def connect(self):
         """
         Establishes the websocket connection and subscribes to trades.
         """
-        self.ws = await websockets.connect(self._url)
+        self.ws = await websockets.connect(self.url)
         ws = self.check_connection()
 
         subscribe_msg = {
@@ -85,7 +83,9 @@ class KrakenWebsocketClient(TradesWebsocketClient):
             },
         }
         await ws.send(json.dumps(subscribe_msg))
-        logger.info(f"Subscribed to {self.kraken_symbols} trades from Kraken")
+        logger.info(
+            f"Subscribed to {[s.value for s in self.symbols]} trades from Kraken"
+        )
         return self
 
     async def stream_trades(self) -> AsyncIterator[Trade]:
@@ -98,11 +98,12 @@ class KrakenWebsocketClient(TradesWebsocketClient):
             try:
                 message = await ws.recv()
                 response = json.loads(message)
+
                 if not is_trade(response):
                     if is_heartbeat(response):
-                        logger.info(f"Heartbeat ({Exchange.KRAKEN.value})")
+                        logger.info(f"Heartbeat ({self.name})")
                     else:
-                        logger.info(f"Non-trade message ({Exchange.KRAKEN.value})")
+                        logger.info(f"Non-trade message ({self.name})")
                     continue
 
                 trades = response.get("data", [])

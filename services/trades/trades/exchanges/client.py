@@ -7,7 +7,7 @@ from websockets.asyncio.client import ClientConnection
 from domain.trades import Symbol, Trade
 
 
-class TradesWebsocketClient(abc.ABC):
+class TradesWsClient(abc.ABC):
     """
     Abstract base class for websocket clients.
     """

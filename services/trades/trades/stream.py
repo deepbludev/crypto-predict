@@ -5,17 +5,18 @@ import quixstreams as qs
 from loguru import logger
 
 from trades.core.settings import trades_settings
-from trades.exchanges.kraken import KrakenWebsocketClient
+from trades.exchanges.kraken import KrakenTradesWsClient
 
 
-async def consume_trades_from_kraken_ws(
-    kraken_client: KrakenWebsocketClient,
+async def consume_live_trades_from_kraken(
+    kraken_client: KrakenTradesWsClient,
     stream_app: qs.Application,
 ):
     """
-    Background task that processes Kraken trades.
-    It uses the Kraken websocket API to get the trades and the Quix messagebus
-    to produce them.
+    Background task that consumes live trades from the Kraken websocket API and
+    produces them to the messagebus.
+
+    It runs continuously, until the service is stopped.
     """
     settings = trades_settings()
     topic = stream_app.topic(name=settings.topic, value_serializer="json")
@@ -28,8 +29,8 @@ async def consume_trades_from_kraken_ws(
                 )
                 producer.produce(topic=topic.name, value=message.value, key=message.key)
                 logger.info(
-                    f"Trade ({trade.exchange.value}): "
-                    f"{trade.symbol.value} at {trade.price} "
+                    f"Live Trade ({trade.exchange.value}): "
+                    f"{trade.symbol.value} {trade.price} "
                     f"({datetime.fromtimestamp(trade.timestamp/1000)})"
                 )
 
@@ -40,3 +41,22 @@ async def consume_trades_from_kraken_ws(
         logger.error(f"Error processing trades: {e}")
     finally:
         logger.info("Trade processing task has terminated")
+
+
+async def consume_historical_trades_from_kraken(
+    stream_app: qs.Application,
+):
+    """
+    Background task that consumes historical trades from the Kraken REST API and
+    produces them to the messagebus.
+
+    It runs until the historical trades are exhausted.
+    """
+    # TODO: Implement
+    since = trades_settings().kraken_backfill_trades_since
+    if not since:
+        return
+
+    ns = since.timestamp() * 1_000_000_000  # nanoseconds
+    logger.info(f"Consuming historical trades from Kraken since {since} ({ns} ns)")
+    pass
