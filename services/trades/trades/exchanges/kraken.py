@@ -2,12 +2,10 @@
 Kraken websocket API implementation using async websockets.
 """
 
-import asyncio
 import json
 from datetime import datetime
 from typing import Any, AsyncIterator
 
-import quixstreams as qs
 import websockets
 from loguru import logger
 from pydantic import Field, ValidationError, field_serializer
@@ -15,6 +13,8 @@ from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
 
 from domain.core import Schema
 from domain.trades import Exchange, Symbol, Trade
+
+from .client import TradesWebsocketClient
 
 
 class KrakenTrade(Schema):
@@ -54,7 +54,7 @@ def is_heartbeat(response: dict[str, Any]) -> bool:
     return response.get("channel") == "heartbeat"
 
 
-class KrakenWebsocketAPI:
+class KrakenWebsocketClient(TradesWebsocketClient):
     _url = "wss://ws.kraken.com/v2"
 
     def __init__(self, symbols: list[Symbol]):
@@ -62,8 +62,12 @@ class KrakenWebsocketAPI:
         Initializes the Kraken websocket API with the given symbols,
         converting them to the format expected by the Kraken API.
         """
-        self.symbols = list(map(KrakenTrade.to_kraken_symbol, symbols))
-        self.ws = None
+        self.kraken_symbols = list(map(KrakenTrade.to_kraken_symbol, symbols))
+        super().__init__(
+            name=Exchange.KRAKEN.value,
+            symbols=symbols,
+            url=self._url,
+        )
 
     async def connect(self):
         """
@@ -76,20 +80,13 @@ class KrakenWebsocketAPI:
             "method": "subscribe",
             "params": {
                 "channel": "trade",
-                "symbol": self.symbols,
+                "symbol": self.kraken_symbols,
                 "snapshot": True,
             },
         }
         await ws.send(json.dumps(subscribe_msg))
-
-    def check_connection(self):
-        """
-        Checks if the websocket connection is established,
-        raising a RuntimeError if it is not.
-        """
-        if self.ws is None:
-            raise RuntimeError("Websocket not connected. Call connect() first.")
-        return self.ws
+        logger.info(f"Subscribed to {self.kraken_symbols} trades from Kraken")
+        return self
 
     async def stream_trades(self) -> AsyncIterator[Trade]:
         """
@@ -103,11 +100,9 @@ class KrakenWebsocketAPI:
                 response = json.loads(message)
                 if not is_trade(response):
                     if is_heartbeat(response):
-                        logger.info(f"Received heartbeat from {Exchange.KRAKEN.value}")
+                        logger.info(f"Heartbeat ({Exchange.KRAKEN.value})")
                     else:
-                        logger.info(
-                            f"Received non-trade message from {Exchange.KRAKEN.value}"
-                        )
+                        logger.info(f"Non-trade message ({Exchange.KRAKEN.value})")
                     continue
 
                 trades = response.get("data", [])
@@ -128,37 +123,3 @@ class KrakenWebsocketAPI:
             except Exception as e:
                 logger.error(f"Error processing message: {e}")
                 continue
-
-
-async def process_kraken_trades(
-    kraken: KrakenWebsocketAPI,
-    stream_app: qs.Application,
-    topic_name: str,
-):
-    """
-    Background task that processes Krakentrades.
-    It uses the Kraken websocket API to get the trades and the Quix messagebus
-    to produce them.
-    """
-    topic = stream_app.topic(name=topic_name, value_serializer="json")
-    try:
-        with stream_app.get_producer() as producer:
-            async for trade in kraken.stream_trades():
-                message = topic.serialize(
-                    key=trade.symbol,
-                    value=trade.unpack(),
-                )
-                producer.produce(topic=topic.name, value=message.value, key=message.key)
-                logger.info(
-                    f"Produced trade from {trade.exchange.value}: "
-                    f"{trade.symbol.value} at {trade.price} "
-                    f"({datetime.fromtimestamp(trade.timestamp/1000)})"
-                )
-
-    except asyncio.CancelledError:
-        logger.info("Trade processing task from Kraken was cancelled")
-        raise
-    except Exception as e:
-        logger.error(f"Error processing trades: {e}")
-    finally:
-        logger.info("Trade processing task has terminated")
