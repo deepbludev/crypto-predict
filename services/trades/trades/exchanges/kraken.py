@@ -97,30 +97,30 @@ class KrakenTradesWsClient(TradesWsClient):
         while True:
             try:
                 message = await ws.recv()
-                response = json.loads(message)
+                res = json.loads(message)
 
-                if not is_trade(response):
-                    if is_heartbeat(response):
-                        logger.info(f"Heartbeat ({self.name})")
-                    else:
-                        logger.info(f"Non-trade message ({self.name})")
+                if not is_trade(res):
+                    message_type = "Heartbeat" if is_heartbeat(res) else "Non-trade"
+                    logger.info(f"[{self.name}] {message_type}")
                     continue
 
-                trades = response.get("data", [])
+                trades = res.get("data", [])
                 for trade in trades:
                     try:
                         yield KrakenTrade.parse(trade).into()
                     except ValidationError as e:
-                        logger.error(f"Error validating trade from Kraken: {e}")
+                        logger.error(f"[{self.name}] Error validating trade: {e}")
 
             except ConnectionClosedOK:
                 # Normal closure
-                logger.info("WebSocket connection closed normally.")
+                logger.info(f"[{self.name}] WebSocket connection closed normally")
                 break
             except ConnectionClosedError as e:
                 # Abnormal closure
-                logger.error(f"WebSocket connection closed with error: {e}")
+                logger.error(
+                    f"[{self.name}] WebSocket connection closed with error: {e}"
+                )
                 break
             except Exception as e:
-                logger.error(f"Error processing message: {e}")
+                logger.error(f"[{self.name}] Error processing message: {e}")
                 continue

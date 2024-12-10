@@ -32,7 +32,7 @@ async def consume_live_trades_from_kraken(
                 )
                 producer.produce(topic=topic.name, value=message.value, key=message.key)
                 logger.info(
-                    f"Live Trade ({trade.exchange.value}): "
+                    f"[{trade.exchange.value}] Live Trade: "
                     f"{trade.symbol.value} {trade.price} "
                     f"({datetime.fromtimestamp(trade.timestamp/1000)})"
                 )
