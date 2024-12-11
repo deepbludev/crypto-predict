@@ -19,10 +19,10 @@ class RSI(Schema):
     It includes the RSI at 9, 14, 21, 28 days.
     """
 
-    rsi_9: float
-    rsi_14: float
-    rsi_21: float
-    rsi_28: float
+    rsi_9: float | None
+    rsi_14: float | None
+    rsi_21: float | None
+    rsi_28: float | None
 
     @staticmethod
     def calc_rsi(close: Iterable[float]) -> RSI:
@@ -48,9 +48,9 @@ class MACD(Schema):
     It includes the MACD, MACD signal and MACD histogram.
     """
 
-    macd: float
-    macd_signal: float
-    macd_hist: float
+    macd: float | None
+    macd_signal: float | None
+    macd_hist: float | None
 
     @staticmethod
     def calc_macd(
@@ -85,9 +85,9 @@ class BollingerBands(Schema):
     It includes the Bollinger Bands upper, middle and lower.
     """
 
-    bbands_upper: float
-    bbands_middle: float
-    bbands_lower: float
+    bbands_upper: float | None
+    bbands_middle: float | None
+    bbands_lower: float | None
 
     @staticmethod
     def calc_bbands(
@@ -129,8 +129,8 @@ class StochasticRSI(Schema):
     It includes the fastk and fastd.
     """
 
-    stochrsi_fastk: float
-    stochrsi_fastd: float
+    stochrsi_fastk: float | None
+    stochrsi_fastd: float | None
 
     @staticmethod
     def calc_stochrsi(
@@ -171,7 +171,7 @@ class VolumeProfile(Schema):
     Includes the volume EMA.
     """
 
-    volume_ema: float
+    volume_ema: float | None
 
     @staticmethod
     def calc_volume_ema(volume: NDFloats, period: int = 10) -> VolumeProfile:
@@ -194,7 +194,7 @@ class AvgDirectionalIndex(Schema):
     Includes the adx at the given period.
     """
 
-    adx: float
+    adx: float | None
 
     @staticmethod
     def calc_adx(
@@ -224,10 +224,10 @@ class IchimokuCloud(Schema):
     Includes the Ichimoku conversion, base, leading span A and leading span B.
     """
 
-    ichimoku_conv: float
-    ichimoku_base: float
-    ichimoku_span_a: float
-    ichimoku_span_b: float
+    ichimoku_conv: float | None
+    ichimoku_base: float | None
+    ichimoku_span_a: float | None
+    ichimoku_span_b: float | None
 
     @staticmethod
     def calc_ichimoku(
@@ -261,7 +261,7 @@ class MoneyFlowIndex(Schema):
     Includes the mfi at the given period.
     """
 
-    mfi: float
+    mfi: float | None
 
     @staticmethod
     def calc_mfi(
@@ -293,7 +293,7 @@ class AvgTrueRange(Schema):
     Includes the atr at the given period.
     """
 
-    atr: float
+    atr: float | None
 
     @staticmethod
     def calc_atr(
@@ -323,7 +323,7 @@ class PriceROC(Schema):
     Includes the roc at the given period.
     """
 
-    roc: float
+    roc: float | None
 
     @staticmethod
     def calc_roc(close: NDFloats, period: int = 6) -> PriceROC:
@@ -346,10 +346,10 @@ class SMA(Schema):
     Includes the sma at 7, 14, 21, 28 days.
     """
 
-    sma_7: float
-    sma_14: float
-    sma_21: float
-    sma_28: float
+    sma_7: float | None
+    sma_14: float | None
+    sma_21: float | None
+    sma_28: float | None
 
     @staticmethod
     def calc_sma(close: NDFloats) -> SMA:
