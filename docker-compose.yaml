@@ -109,7 +109,30 @@ services:
     networks:
       - cryptopredict-network
 
-    
+  # ----------------------------------------
+  # --- News service
+  # ----------------------------------------
+  news:
+    container_name: news
+    depends_on:
+      - redpanda
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile
+      args:
+        SERVICE_NAME: news
+        PORT: 8005
+    command: fastapi dev app/services/news/news --port 8005
+    ports:
+      - 8005:8005
+    environment:
+      - NEWS_BROKER_ADDRESS=redpanda:9092
+    env_file:
+      - services/news/.env
+    restart: always
+    networks:
+      - cryptopredict-network
+
   # ----------------------------------------
   # --- Messagebus
   # ----------------------------------------
