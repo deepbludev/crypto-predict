@@ -3,7 +3,7 @@ from typing import Any
 import quixstreams as qs
 from loguru import logger
 
-from candles.core.settings import candles_settings
+from candles.core.settings import EmissionMode, candles_settings
 from domain.candles import Candle
 from domain.trades import Trade
 
@@ -39,7 +39,7 @@ def generate_candles_from_trades(stream_app: qs.Application):
     ) -> int:
         return value["timestamp"]
 
-    (
+    sdf = (
         stream_app.dataframe(
             topic=stream_app.topic(
                 settings.input_topic,
@@ -55,23 +55,35 @@ def generate_candles_from_trades(stream_app: qs.Application):
             # update the candle with the next trade
             reducer=lambda candle, trade: Candle.parse(candle).update(trade).unpack(),
         )
-        .current()
+    )
+
+    # select the emission mode
+    match settings.emission_mode:
+        case EmissionMode.LIVE:
+            # emit partial candles as soon as a new trade is received
+            sdf = sdf.current()
+        case EmissionMode.FULL:
+            # emit full candles only after the window is closed
+            sdf = sdf.final()
+
+    sdf = (
         # close the candle window
-        .apply(
+        sdf.apply(
             lambda result: Candle.parse(result["value"])
             .close_window(result["start"], result["end"])
             .unpack()
         )
         .to_topic(stream_app.topic(name=settings.output_topic))
-        .update(log_candle)
+        .update(
+            lambda candle: logger.info(
+                (
+                    f"[{candle['exchange'].value}] "
+                    f"Candle ({settings.emission_mode.value}): "
+                    f"{candle['symbol'].value}-{candle['timeframe'].value} "
+                    f"{candle['timestamp']}"
+                )
+            )
+        )
     )
 
     return stream_app
-
-
-def log_candle(candle: dict[str, Any]):
-    """Log the candle."""
-    candle_str = (
-        f"{candle['symbol'].value}-{candle['timeframe'].value}-{candle['timestamp']}"
-    )
-    logger.info("Candle: " + candle_str)

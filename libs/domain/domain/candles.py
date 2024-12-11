@@ -4,7 +4,7 @@ from enum import Enum
 from typing import Self
 
 from domain.core import Schema
-from domain.trades import Symbol, Trade
+from domain.trades import Exchange, Symbol, Trade
 
 
 class CandleTimeframe(str, Enum):
@@ -48,6 +48,7 @@ class CandleProps(Schema):
 
     symbol: Symbol
     timeframe: CandleTimeframe
+    exchange: Exchange
     open: float
     high: float
     low: float
@@ -90,6 +91,7 @@ class Candle(CandleProps):
         return cls(
             symbol=first_trade.symbol,
             timeframe=timeframe,
+            exchange=first_trade.exchange,
             open=first_trade.price,
             high=first_trade.price,
             low=first_trade.price,
