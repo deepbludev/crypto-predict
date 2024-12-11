@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime
 from time import sleep
 
@@ -5,6 +7,7 @@ from loguru import logger
 from quixstreams.sources.base import StatefulSource
 
 from domain.news import NewsOutlet, NewsStory
+from news.core.settings import news_settings
 
 
 class CryptoPanicOutlet(StatefulSource):
@@ -13,6 +16,7 @@ class CryptoPanicOutlet(StatefulSource):
         polling_interval_sec: int = 10,
     ):
         super().__init__(name="cryptopanic")
+        self.client = CryptoPanicClient()
         self.polling_interval_sec = polling_interval_sec
 
     def run(self):
@@ -20,7 +24,7 @@ class CryptoPanicOutlet(StatefulSource):
 
         while self.running:
             # get latest news from cryptopanic
-            stories: list[NewsStory] = mock_get_news()
+            stories: list[NewsStory] = self.client.get_news()
             logger.info(f"Last news published at: {last}")
 
             # keep only the stories that were published after the last one
@@ -44,15 +48,20 @@ class CryptoPanicOutlet(StatefulSource):
             sleep(self.polling_interval_sec)
 
 
-def mock_get_news() -> list[NewsStory]:
-    stories = [
-        NewsStory(
-            outlet=NewsOutlet.CRYPTOPANIC,
-            title="test",
-            source="crypto.com",
-            url="https://cryptopanic.com/news/12345",
-            published_at=datetime.now().isoformat(),
-        )
-        for _ in range(10)
-    ]
-    return stories
+class CryptoPanicClient:
+    def __init__(self):
+        self.url = news_settings().cryptopanic_news_endpoint
+
+    def get_news(self) -> list[NewsStory]:
+        stories = [
+            NewsStory(
+                outlet=NewsOutlet.CRYPTOPANIC,
+                title="test",
+                source="crypto.com",
+                url="https://cryptopanic.com/news/12345",
+                published_at=datetime.now().isoformat(),
+            )
+            for _ in range(10)
+        ]
+
+        return stories

@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     consumer_group: str = "cg_news"
     news_topic: str = "news"
 
+    # cryptopanic settings
+    cryptopanic_news_endpoint: str = "https://cryptopanic.com/api/free/v1/posts/"
+
 
 @lru_cache()
 def news_settings() -> Settings:
