@@ -2,6 +2,8 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from domain.trades import TradeIngestionMode
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -15,6 +17,7 @@ class Settings(BaseSettings):
     broker_address: str = "localhost:19092"
     consumer_group: str = "cg_features"
     input_topic: str = "ta"
+    trade_ingestion_mode: TradeIngestionMode = TradeIngestionMode.LIVE
 
     # feature group settings
     fg_name: str = "technical_analysis"

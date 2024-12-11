@@ -1,20 +1,9 @@
-from enum import Enum
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from domain.candles import CandleTimeframe
-
-
-class EmissionMode(str, Enum):
-    """The mode of emission of candles.
-
-    LIVE: emit partial candles as soon as a new trade is received
-    FULL: emit full candles only after the window is closed
-    """
-
-    LIVE = "LIVE"
-    FULL = "FULL"
+from domain.candles import CandleTimeframe, EmissionMode
+from domain.trades import TradeIngestionMode
 
 
 class Settings(BaseSettings):
@@ -31,6 +20,7 @@ class Settings(BaseSettings):
     output_topic: str = "candles"
     timeframe: CandleTimeframe = CandleTimeframe.tf_1m
     emission_mode: EmissionMode = EmissionMode.LIVE
+    trade_ingestion_mode: TradeIngestionMode = TradeIngestionMode.LIVE
 
 
 @lru_cache()

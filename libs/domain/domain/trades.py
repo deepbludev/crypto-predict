@@ -3,6 +3,26 @@ from enum import Enum
 from domain.core import Schema
 
 
+class TradeIngestionMode(str, Enum):
+    """
+    The mode of ingestion of trades.
+
+    LIVE: ingest trades from a live source
+    HISTORICAL: ingest trades from a historical source
+    """
+
+    LIVE = "LIVE"
+    HISTORICAL = "HISTORICAL"
+
+    def to_auto_reset_offset_mode(self):
+        """Convert the ingestion mode to the auto-reset offset mode, used by kafka."""
+        match self:
+            case TradeIngestionMode.LIVE:
+                return "earliest"
+            case TradeIngestionMode.HISTORICAL:
+                return "latest"
+
+
 class Exchange(str, Enum):
     """Exchange Enum"""
 

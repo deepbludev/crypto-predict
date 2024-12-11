@@ -36,6 +36,7 @@ async def startup(app: FastAPI):
     app.state.stream_app = qs.Application(
         broker_address=settings.broker_address,
         consumer_group=settings.consumer_group,
+        auto_offset_reset=settings.trade_ingestion_mode.to_auto_reset_offset_mode(),
     )
     logger.info(
         f"Connected to messagebus at {settings.broker_address}, "

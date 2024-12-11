@@ -43,6 +43,17 @@ class CandleTimeframe(str, Enum):
                 return 60 * 60 * 24 * 30
 
 
+class EmissionMode(str, Enum):
+    """The mode of emission of candles.
+
+    LIVE: emit partial candles as soon as a new trade is received
+    FULL: emit full candles only after the window is closed
+    """
+
+    LIVE = "LIVE"
+    FULL = "FULL"
+
+
 class CandleProps(Schema):
     """Properties of an OHLC candle."""
 
