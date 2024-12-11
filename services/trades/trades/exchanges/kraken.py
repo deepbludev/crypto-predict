@@ -185,16 +185,19 @@ class KrakenTradesRestClient(TradesRestClient):
 
         It stops when the current time is reached.
         """
-        headers = {"Accept": "application/json"}
+        logger.info(f"[{self.exchange}] ({kraken_symbol}) Fetching trades...")
 
+        # start from the given since timestamp
         since_ns, stop_ns = to_ns(since), to_ns(stop)
         last = since_ns
-        logger.info(f"[{self.exchange}] ({kraken_symbol}) Fetching trades...")
+
+        # iterate until the current time is reached
         while True:
             # wait to avoid rate limiting
-            await asyncio.sleep(1)
+            await asyncio.sleep(1)  # 1 sec recommended by Kraken docs
 
             # fetch trades from the exchange
+            headers = {"Accept": "application/json"}
             params = {"pair": kraken_symbol, "since": last}
             res = await self.client.get(self.url, params=params, headers=headers)
             data = res.json()
