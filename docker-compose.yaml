@@ -101,6 +101,11 @@ services:
     command: fastapi dev app/services/features/features --port 8004
     ports:
       - 8004:8004
+    environment:
+      - FEATURES_BROKER_ADDRESS=redpanda:9092
+    env_file:
+      - services/features/.env
+    restart: always
     networks:
       - cryptopredict-network
 

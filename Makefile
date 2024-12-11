@@ -13,6 +13,17 @@ down:
 stop:
 	docker compose stop $(svc)
 
+backfill:
+	$(eval NOW := $(shell date +%s))
+	@echo "Starting backfill with Job ID: $(NOW)"
+	TRADES_BACKFILL_JOB_ID=$(NOW) docker compose -f docker-compose.historical.yaml up -d $(if $(build),--build,) 
+
+clean-backfill:
+	@echo "Cleaning historical topics..."
+	docker compose exec redpanda rpk topic delete -r ".*historical.*"
+	@echo "Fetching historical consumer groups..."
+	docker compose exec redpanda rpk group list | grep historical | xargs -r docker compose exec redpanda rpk group delete
+
 # ----------------------------------------
 # Development
 # ----------------------------------------
@@ -63,3 +74,4 @@ ifeq ($(filter $(svc),$(SERVICES)),$(svc))
 else
 	@echo "Invalid service: $(svc)"
 endif
+

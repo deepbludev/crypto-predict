@@ -1,0 +1,116 @@
+# Docker Compose file for the Cryptopredict project
+#
+# This file is used to run the Cryptopredict project in Docker containers
+# to backfill historical data.
+
+name: cryptopredict-historical
+
+networks:
+  cryptopredict-dev_cryptopredict-network:
+    external: true
+    
+services:
+  # ----------------------------------------
+  # --- Trades service
+  # ----------------------------------------
+  trades:
+    container_name: trades
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile
+      args:
+        SERVICE_NAME: trades
+        PORT: 8001
+    command: fastapi run app/services/trades/trades --port 8001
+    ports:
+      - 8101:8001
+    environment:
+      - TRADES_BROKER_ADDRESS=redpanda:9092
+      - TRADES_KRAKEN_CONSUME_LIVE_TRADES=false
+      - TRADES_KRAKEN_BACKFILL_TRADES_SINCE=2024-12-01
+      - TRADES_BACKFILL_JOB_ID=${TRADES_BACKFILL_JOB_ID}
+    env_file:
+      - services/trades/.env
+    restart: on-failure
+    networks:
+      - cryptopredict-dev_cryptopredict-network
+
+  # ----------------------------------------
+  # --- Candles service
+  # ----------------------------------------
+  candles:
+    container_name: candles
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile
+      args:
+        SERVICE_NAME: candles
+        PORT: 8002
+    command: fastapi run app/services/candles/candles --port 8002
+    ports:
+      - 8102:8002
+    environment:
+      - CANDLES_BROKER_ADDRESS=redpanda:9092
+      - CANDLES_EMISSION_MODE=FULL
+      - CANDLES_TRADE_INGESTION_MODE=HISTORICAL
+      - CANDLES_INPUT_TOPIC=trades_historical_${TRADES_BACKFILL_JOB_ID}
+      - CANDLES_OUTPUT_TOPIC=candles_historical_${TRADES_BACKFILL_JOB_ID}
+      - CANDLES_CONSUMER_GROUP=cg_candles_historical_${TRADES_BACKFILL_JOB_ID}
+    env_file:
+      - services/candles/.env
+    restart: on-failure
+    networks:
+      - cryptopredict-dev_cryptopredict-network
+
+  # ----------------------------------------
+  # --- TA service
+  # ----------------------------------------
+  ta:
+    container_name: ta
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile
+      args:
+        SERVICE_NAME: ta
+        PORT: 8003
+    command: fastapi run app/services/ta/ta --port 8003
+    ports:
+      - 8103:8003
+    environment:
+      - TA_BROKER_ADDRESS=redpanda:9092
+      - TA_TRADE_INGESTION_MODE=HISTORICAL
+      - TA_INPUT_TOPIC=candles_historical_${TRADES_BACKFILL_JOB_ID}
+      - TA_OUTPUT_TOPIC=ta_historical_${TRADES_BACKFILL_JOB_ID}
+      - TA_CONSUMER_GROUP=cg_ta_historical_${TRADES_BACKFILL_JOB_ID}
+    env_file:
+      - services/ta/.env
+    restart: on-failure
+    networks:
+      - cryptopredict-dev_cryptopredict-network
+
+  # ----------------------------------------
+  # --- Features service
+  # ----------------------------------------
+  features:
+    container_name: features
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile
+      args:
+        SERVICE_NAME: features
+        PORT: 8004
+    command: fastapi run app/services/features/features --port 8004
+    ports:
+      - 8104:8004
+    environment:
+      - FEATURES_BROKER_ADDRESS=redpanda:9092
+      - FEATURES_TRADE_INGESTION_MODE=HISTORICAL
+      - FEATURES_INPUT_TOPIC=ta_historical_${TRADES_BACKFILL_JOB_ID}
+      - FEATURES_OUTPUT_TOPIC=features_historical_${TRADES_BACKFILL_JOB_ID}
+      - FEATURES_CONSUMER_GROUP=cg_features_historical_${TRADES_BACKFILL_JOB_ID}
+    env_file:
+      - services/features/.env
+    restart: on-failure
+    networks:
+      - cryptopredict-dev_cryptopredict-network
+
