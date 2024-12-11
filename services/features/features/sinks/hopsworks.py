@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 import hopsworks
 import pandas as pd
 from hsfs.feature_store import FeatureStore
@@ -20,6 +22,7 @@ class HopsworksFeatureStoreSink(BatchingSink):
         self.fg_version = settings.fg_version
         self.fg_pk = settings.fg_pk
         self.fg_event_time = settings.fg_event_time
+        self.fg_materialization_job_schedule = settings.fg_materialization_job_schedule
         self.project_name = settings.hopsworks_project_name
         self.api_key = settings.hopsworks_api_key
         self.fs: FeatureStore | None = None
@@ -42,6 +45,12 @@ class HopsworksFeatureStoreSink(BatchingSink):
             primary_key=self.fg_pk,
             event_time=self.fg_event_time,
             online_enabled=True,
+        )
+        # set the materialization interval
+        assert self.fg.materialization_job
+        self.fg.materialization_job.schedule(
+            cron_expression=self.fg_materialization_job_schedule,
+            start_time=datetime.now(tz=timezone.utc),
         )
         return self
 

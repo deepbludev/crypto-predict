@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     fg_version: int = 1
     fg_pk: list[str] = ["symbol", "timeframe"]
     fg_event_time: str = "timestamp"
+    fg_materialization_job_schedule: str = "0 0/15 * ? * * *"
 
     # secrets
     hopsworks_api_key: str = "hopsworks_api_key"
