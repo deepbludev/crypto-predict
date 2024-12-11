@@ -68,17 +68,12 @@ async def consume_historical_trades(
         return
     try:
         logger.info(f"[{exchange}] Consuming historical trades: {since}")
-        historical_topic = stream_app.topic(
-            name=historical_topic_name,
-            value_serializer="json",
-        )
+        topic = stream_app.topic(name=historical_topic_name, value_serializer="json")
 
         with stream_app.get_producer() as producer:
             async for trade in exchange_client.stream_trades(since):
-                msg = historical_topic.serialize(key=trade.symbol, value=trade.unpack())
-                producer.produce(
-                    topic=historical_topic.name, value=msg.value, key=msg.key
-                )
+                msg = topic.serialize(key=trade.symbol, value=trade.unpack())
+                producer.produce(topic=topic.name, value=msg.value, key=msg.key)
 
                 logger.info(
                     f"[{trade.exchange}] Historical Trade: "

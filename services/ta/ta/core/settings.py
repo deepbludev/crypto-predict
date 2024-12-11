@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     input_topic: str = "candles"
     output_topic: str = "ta"
     candle_timeframe: CandleTimeframe = CandleTimeframe.tf_1m
-    max_candles_in_state: int = 60
+    max_candles_in_state: int = 120
 
 
 @lru_cache()
