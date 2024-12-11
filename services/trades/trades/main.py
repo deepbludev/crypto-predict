@@ -55,6 +55,7 @@ async def startup(app: FastAPI):
             url=settings.kraken_ws_endpoint,
             symbols=settings.symbols,
         ),
+        # Add other exchanges here...
     ]
 
     # 3. Connect to the REST clients
@@ -63,6 +64,7 @@ async def startup(app: FastAPI):
             url=settings.kraken_rest_endpoint,
             symbols=settings.symbols,
         ),
+        # Add other exchanges here...
     ]
 
     # 4. Start the streams as a background tasks
