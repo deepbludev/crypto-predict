@@ -74,16 +74,7 @@ def generate_candles_from_trades(stream_app: qs.Application):
             .unpack()
         )
         .to_topic(stream_app.topic(name=settings.output_topic))
-        .update(
-            lambda candle: logger.info(
-                (
-                    f"[{candle['exchange'].value}] "
-                    f"Candle ({settings.emission_mode.value}): "
-                    f"{candle['symbol'].value}-{candle['timeframe'].value} "
-                    f"{candle['timestamp']}"
-                )
-            )
-        )
+        .update(lambda c: logger.info(f"[{c['exchange']}] Candle: {c}"))
     )
 
     return stream_app
