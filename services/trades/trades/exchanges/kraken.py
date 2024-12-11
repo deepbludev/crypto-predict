@@ -165,14 +165,15 @@ class KrakenTradesRestClient(TradesRestClient):
         """
         Streams trades from the exchange for all symbols sequentially,
         starting from the given datetime, and yielding trades as they are fetched.
+
         It stops when the current time is reached.
         """
-        stop = datetime.now()
-        for kraken_symbol in self.kraken_symbols:
+        now = datetime.now()
+        for ksym in self.kraken_symbols:
             async for trade in self.stream_trades_for_symbol(
-                kraken_symbol,
+                kraken_symbol=ksym,
                 since=since,
-                stop=stop,
+                stop=now,
             ):
                 yield trade
 
@@ -183,9 +184,10 @@ class KrakenTradesRestClient(TradesRestClient):
         Asynchronously fetches all historical trades for a given symbol
         from the exchange, yielding trades as they are fetched.
 
-        It stops when the current time is reached.
+        It stops when the stop timestamp is reached.
         """
-        logger.info(f"[{self.exchange}] ({kraken_symbol}) Fetching trades...")
+        exsym_log = f"[{self.exchange}] {kraken_symbol}"
+        logger.info(f"{exsym_log}: Fetching trades...")
 
         # start from the given since timestamp
         since_ns, stop_ns = to_ns(since), to_ns(stop)
@@ -193,8 +195,8 @@ class KrakenTradesRestClient(TradesRestClient):
 
         # iterate until the current time is reached
         while True:
-            # wait to avoid rate limiting
-            await asyncio.sleep(1)  # 1 sec recommended by Kraken docs
+            # wait 1 sec to avoid rate limiting, recommended in Kraken docs
+            await asyncio.sleep(1)
 
             # fetch trades from the exchange
             headers = {"Accept": "application/json"}
@@ -208,31 +210,26 @@ class KrakenTradesRestClient(TradesRestClient):
             if not result:
                 raise ValueError(f"Unexpected API response format: {data}")
 
-            # Extract data and last trade timestamp
+            # extract data and last trade timestamp
             trades_data = result.get(kraken_symbol, [])
             last = int(result.get("last", last))
 
-            last_trade_on = f"Last trade on: {to_dt(last)} ({last} ns)"
+            last_on = f"Last trade on: {to_dt(last)} ({last} ns)"
             logger.info(
-                f"[{self.exchange}] {kraken_symbol}: "
-                f"Fetched {len(trades_data)} historical trades. {last_trade_on}"
+                f"{exsym_log}: Fetched {len(trades_data)} historical trades. {last_on}"
             )
 
             if last >= stop_ns:
                 # stop if the current time is reached
-                logger.info(
-                    f"[{self.exchange}] ({kraken_symbol}): "
-                    f"Finished fetching trades. {last_trade_on}"
-                )
+                logger.info(f"{exsym_log}: Finished fetching trades. {last_on}")
                 break
 
-            for t in trades_data:
-                # yield converted Trade objects
-                try:
+            # yield all the trades
+            try:
+                for t in trades_data:
                     yield KrakenTrade.from_rest(kraken_symbol, t).into()
-                except ValidationError as e:
-                    msg = f"[{self.exchange}] Error validating trade {t}: {e}"
-                    logger.error(msg)
+            except ValidationError as e:
+                logger.error(f"{exsym_log}: " f"Error validating trade: {e}")
 
 
 def to_ns(dt: datetime) -> int:
