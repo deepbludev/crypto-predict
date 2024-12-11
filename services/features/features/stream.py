@@ -29,8 +29,8 @@ def generate_features_from_candles_and_load_to_feature_store(
     fs = HopsworksFeatureStoreSink().connect()
     (
         stream_app.dataframe(stream_app.topic(ta_topic, value_deserializer="json"))
-        .apply(TechnicalAnalysis.model_validate)
-        .update(lambda ta: logger.info(f"Reading Technical Analysis: {ta.key()}"))
+        .apply(TechnicalAnalysis.parse)
+        .update(lambda ta: logger.info(f"Loading TA to feature store: {ta.key()}"))
         .apply(TechnicalAnalysis.serialize)
         .sink(fs)
     )
