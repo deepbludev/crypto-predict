@@ -9,7 +9,7 @@ from news.outlets.cryptopanic import CryptoPanicOutlet
 def run_stream(stream_app: qs.Application):
     """Builds the stream and runs it."""
 
-    get_latest_news_from_cryptopanic(stream_app)
+    stream_latest_news_from_cryptopanic(stream_app)
 
     try:
         logger.info("Starting the news stream")
@@ -20,7 +20,7 @@ def run_stream(stream_app: qs.Application):
         logger.info("Stream application stopped")
 
 
-def get_latest_news_from_cryptopanic(stream_app: qs.Application):
+def stream_latest_news_from_cryptopanic(stream_app: qs.Application):
     news_topic = news_settings().news_topic
     cryptopanic_outlet = CryptoPanicOutlet()
     (

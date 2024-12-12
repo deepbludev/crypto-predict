@@ -18,6 +18,7 @@ class Settings(BaseSettings):
 
     # cryptopanic settings
     cryptopanic_news_endpoint: str = "https://cryptopanic.com/api/free/v1/posts/"
+    cryptopanic_api_key: str = "<no-cryptopanic-api-key>"
 
 
 @lru_cache()
