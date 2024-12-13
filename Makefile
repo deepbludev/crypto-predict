@@ -2,16 +2,16 @@
 # Infrastructure
 # ----------------------------------------
 build:
-	docker compose up  --build -d $(svc)
+	docker compose -f .docker/$(cluster).compose.yaml up --build -d $(svc)
 
 up:
-	docker compose up -d $(svc)
+	docker compose -f .docker/$(cluster).compose.yaml up -d $(svc)
 
 down:
-	docker compose down $(svc)
+	docker compose -f .docker/$(cluster).compose.yaml down $(svc)
 
 stop:
-	docker compose stop $(svc)
+	docker compose -f .docker/$(cluster).compose.yaml stop $(svc)
 
 backfill:
 	$(eval NOW := $(shell date +%s))

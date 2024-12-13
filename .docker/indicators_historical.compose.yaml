@@ -1,12 +1,10 @@
-# Docker Compose file for the Cryptopredict project
-#
-# This file is used to run the Cryptopredict project in Docker containers
-# to backfill historical data.
+# Docker Compose file for the Indicatores Feature Pipeline
+# in historical mode
 
-name: cryptopredict-historical
+name: cryptopredict-indicators_historical
 
 networks:
-  cryptopredict-dev_cryptopredict-network:
+  cryptopredict-messagebus_cryptopredict-network:
     external: true
     
 services:
@@ -16,7 +14,7 @@ services:
   trades:
     container_name: trades
     build:
-      context: .
+      context: ..
       dockerfile: .docker/Dockerfile
       args:
         SERVICE_NAME: trades
@@ -30,10 +28,10 @@ services:
       - TRADES_KRAKEN_BACKFILL_TRADES_SINCE=2024-12-01
       - TRADES_BACKFILL_JOB_ID=${TRADES_BACKFILL_JOB_ID}
     env_file:
-      - services/trades/.env
+      - ../services/trades/.env
     restart: on-failure
     networks:
-      - cryptopredict-dev_cryptopredict-network
+      - cryptopredict-messagebus_cryptopredict-network
 
   # ----------------------------------------
   # --- Candles service
@@ -41,7 +39,7 @@ services:
   candles:
     container_name: candles
     build:
-      context: .
+      context: ..
       dockerfile: .docker/Dockerfile
       args:
         SERVICE_NAME: candles
@@ -57,10 +55,10 @@ services:
       - CANDLES_OUTPUT_TOPIC=candles_historical_${TRADES_BACKFILL_JOB_ID}
       - CANDLES_CONSUMER_GROUP=cg_candles_historical_${TRADES_BACKFILL_JOB_ID}
     env_file:
-      - services/candles/.env
+      - ../services/candles/.env
     restart: on-failure
     networks:
-      - cryptopredict-dev_cryptopredict-network
+      - cryptopredict-messagebus_cryptopredict-network
 
   # ----------------------------------------
   # --- TA service
@@ -68,7 +66,7 @@ services:
   ta:
     container_name: ta
     build:
-      context: .
+      context: ..
       dockerfile: .docker/Dockerfile
       args:
         SERVICE_NAME: ta
@@ -83,10 +81,10 @@ services:
       - TA_OUTPUT_TOPIC=ta_historical_${TRADES_BACKFILL_JOB_ID}
       - TA_CONSUMER_GROUP=cg_ta_historical_${TRADES_BACKFILL_JOB_ID}
     env_file:
-      - services/ta/.env
+      - ../services/ta/.env
     restart: on-failure
     networks:
-      - cryptopredict-dev_cryptopredict-network
+      - cryptopredict-messagebus_cryptopredict-network
 
   # ----------------------------------------
   # --- Features service
@@ -94,7 +92,7 @@ services:
   features:
     container_name: features
     build:
-      context: .
+      context: ..
       dockerfile: .docker/Dockerfile
       args:
         SERVICE_NAME: features
@@ -109,8 +107,8 @@ services:
       - FEATURES_OUTPUT_TOPIC=features_historical_${TRADES_BACKFILL_JOB_ID}
       - FEATURES_CONSUMER_GROUP=cg_features_historical_${TRADES_BACKFILL_JOB_ID}
     env_file:
-      - services/features/.env
+      - ../services/features/.env
     restart: on-failure
     networks:
-      - cryptopredict-dev_cryptopredict-network
+      - cryptopredict-messagebus_cryptopredict-network
 

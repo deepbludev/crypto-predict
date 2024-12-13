@@ -87,6 +87,7 @@ class CryptoPanicClient:
         try:
             response = requests.get(url)
             data = response.json()
+            logger.debug(f"[{self.outlet}] Fetched news batch from {url}")
 
         except Exception as e:
             logger.error(f"[{self.outlet}] Error fetching news: {e}")
@@ -96,6 +97,7 @@ class CryptoPanicClient:
 
         results = data.get("results", [])
         if not results:
+            logger.warning(f"[{self.outlet}] Malformed API response: {data}")
             return empty_batch_to_retry
 
         # parse the data into news stories

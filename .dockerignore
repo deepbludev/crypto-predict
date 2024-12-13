@@ -1,0 +1,16 @@
+**/.ipynb_checkpoints
+**/.coverage
+**/.mypy_cache
+**/.vscode
+**/__pycache__
+**/.pytest_cache
+**/.env
+**/logs
+**/tmp
+**/*.sqlite3
+**/*.xlsx
+
+.mypy_cache/**/*
+
+# Quixstreams state
+state/

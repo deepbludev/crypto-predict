@@ -1,0 +1,96 @@
+# Docker Compose file for the Indicatores Feature Pipeline
+
+name: cryptopredict-indicators
+
+networks:
+  cryptopredict-messagebus_cryptopredict-network:
+    external: true
+
+services:
+  # ----------------------------------------
+  # --- Trades service
+  # ----------------------------------------
+  trades:
+    container_name: trades
+    build:
+      context: ..
+      dockerfile: .docker/Dockerfile
+      args:
+        SERVICE_NAME: trades
+        PORT: 8001
+    command: fastapi dev app/services/trades/trades --port 8001
+    ports:
+      - 8001:8001
+    environment:
+      - TRADES_BROKER_ADDRESS=redpanda:9092
+    env_file:
+      - ../services/trades/.env
+    restart: always
+    networks:
+      - cryptopredict-messagebus_cryptopredict-network
+
+  # ----------------------------------------
+  # --- Candles service
+  # ----------------------------------------
+  candles:
+    container_name: candles
+    build:
+      context: ..
+      dockerfile: .docker/Dockerfile
+      args:
+        SERVICE_NAME: candles
+        PORT: 8002
+    command: fastapi dev app/services/candles/candles --port 8002
+    ports:
+      - 8002:8002
+    environment:
+      - CANDLES_BROKER_ADDRESS=redpanda:9092
+    env_file:
+      - ../services/candles/.env
+    restart: always
+    networks:
+      - cryptopredict-messagebus_cryptopredict-network
+
+  # ----------------------------------------
+  # --- TA service
+  # ----------------------------------------
+  ta:
+    container_name: ta
+    build:
+      context: ..
+      dockerfile: .docker/Dockerfile
+      args:
+        SERVICE_NAME: ta
+        PORT: 8003
+    command: fastapi dev app/services/ta/ta --port 8003
+    ports:
+      - 8003:8003
+    environment:
+      - TA_BROKER_ADDRESS=redpanda:9092
+    env_file:
+      - ../services/ta/.env
+    restart: always
+    networks:
+      - cryptopredict-messagebus_cryptopredict-network
+
+  # ----------------------------------------
+  # --- Features service
+  # ----------------------------------------
+  features:
+    container_name: features
+    build:
+      context: ..
+      dockerfile: .docker/Dockerfile
+      args:
+        SERVICE_NAME: features
+        PORT: 8004
+    command: fastapi dev app/services/features/features --port 8004
+    ports:
+      - 8004:8004
+    environment:
+      - FEATURES_BROKER_ADDRESS=redpanda:9092
+    env_file:
+      - ../services/features/.env
+    restart: always
+    networks:
+      - cryptopredict-messagebus_cryptopredict-network
