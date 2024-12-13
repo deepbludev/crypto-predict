@@ -28,3 +28,5 @@ services:
     restart: always
     networks:
       - cryptopredict-messagebus_cryptopredict-network
+    volumes:
+      - ./state:/app/state

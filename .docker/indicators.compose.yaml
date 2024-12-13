@@ -28,6 +28,8 @@ services:
     restart: always
     networks:
       - cryptopredict-messagebus_cryptopredict-network
+    volumes:
+      - ./state:/app/state
 
   # ----------------------------------------
   # --- Candles service
@@ -50,6 +52,8 @@ services:
     restart: always
     networks:
       - cryptopredict-messagebus_cryptopredict-network
+    volumes:
+      - ./state:/app/state
 
   # ----------------------------------------
   # --- TA service
@@ -72,6 +76,8 @@ services:
     restart: always
     networks:
       - cryptopredict-messagebus_cryptopredict-network
+    volumes:
+      - ./state:/app/state
 
   # ----------------------------------------
   # --- Features service
@@ -94,3 +100,5 @@ services:
     restart: always
     networks:
       - cryptopredict-messagebus_cryptopredict-network
+    volumes:
+      - ./state:/app/state
