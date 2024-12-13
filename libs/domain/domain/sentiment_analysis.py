@@ -38,10 +38,10 @@ class SentimentSignal(str, Enum):
         )
 
 
-class SentimentAnalysis(Schema):
-    btc = SentimentSignal.field_for(Asset.BTC)
-    eth = SentimentSignal.field_for(Asset.ETH)
-    xrp = SentimentSignal.field_for(Asset.XRP)
+class SentimentAnalysisResult(Schema):
+    btc: str = SentimentSignal.field_for(Asset.BTC)
+    eth: str = SentimentSignal.field_for(Asset.ETH)
+    xrp: str = SentimentSignal.field_for(Asset.XRP)
 
     reasoning: str = Field(
         description=dedent("""
@@ -50,6 +50,6 @@ class SentimentAnalysis(Schema):
     )
 
 
-class NewsStorySignal(SentimentAnalysis):
+class NewsStorySentimentAnalysis(SentimentAnalysisResult):
     story: str
     timestamp: int = Field(default_factory=now_timestamp)
