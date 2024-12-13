@@ -17,8 +17,13 @@ class Settings(BaseSettings):
     consumer_group: str = "cg_news_signals"
     input_topic: str = "news"
     output_topic: str = "news_signals"
+
+    # LLM
     llm_provider: LLMProvider = LLMProvider.OLLAMA
     llm_model: LLMModel = LLMModel.LLAMA_3_2_3B
+
+    # Anthropic
+    anthropic_api_key: str = "<anthropic-api-key>"
 
 
 @lru_cache()

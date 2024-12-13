@@ -2,6 +2,7 @@ from domain.llm import LLMProvider
 from news_signals.core.settings import news_signals_settings
 
 from .analyzer import SentimentAnalyzer
+from .anthropic import AnthropicSentimentAnalyzer
 from .ollama import OllamaSentimentAnalyzer
 
 
@@ -14,8 +15,5 @@ def get_sentiment_analyzer() -> SentimentAnalyzer:
         case LLMProvider.OLLAMA:
             return OllamaSentimentAnalyzer(model)
 
-        # Add more providers here...
-        # case LLMProvider.ANTHROPIC:
-        # ...
-        case _:
-            raise ValueError(f"Unknown provider: {provider}")
+        case LLMProvider.ANTHROPIC:
+            return AnthropicSentimentAnalyzer(model)

@@ -44,7 +44,6 @@ class Asset(str, Enum):
     BTC = "BTC"
     ETH = "ETH"
     XRP = "XRP"
-    XLM = "XLM"
 
 
 class Symbol(str, Enum):

@@ -32,7 +32,7 @@ def generate_signal_from_news(stream_app: qs.Application):
         stream_app.dataframe(topic=stream_app.topic(name=settings.input_topic))
         .apply(NewsStory.parse)
         .apply(analyzer.analyze)
-        .apply(NewsStorySentimentAnalysis.serialize)
+        .apply(NewsStorySentimentAnalysis.to_feature)
         .to_topic(stream_app.topic(name=settings.output_topic))
         .update(
             lambda signal: logger.info(f"[{signal['llm_model']}] News Signal: {signal}")

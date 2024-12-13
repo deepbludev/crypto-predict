@@ -1,5 +1,6 @@
 from enum import Enum
 from textwrap import dedent
+from typing import Any
 
 from pydantic import Field
 
@@ -26,29 +27,34 @@ class SentimentSignal(str, Enum):
     def field_for(cls, asset: Asset):
         return Field(
             default=cls.NEUTRAL,
-            description=dedent("""
+            description=dedent(f"""
                 The sentiment signal for the {asset} asset, based on the impact
                 of the news on the {asset} price.
 
                 - BULLISH if the price is expected to go up
                 - NEUTRAL if it is expected to stay the same or the news is not related to {asset}
                 - BEARISH if it is expected to go down
-                """)  # noqa: E501
-            .format(asset=asset)
-            .strip(),
+                """).strip(),  # noqa: E501
         )
 
 
 class SentimentAnalysisResult(Schema):
-    btc: str = SentimentSignal.field_for(Asset.BTC)
-    eth: str = SentimentSignal.field_for(Asset.ETH)
-    xrp: str = SentimentSignal.field_for(Asset.XRP)
+    btc: SentimentSignal = SentimentSignal.field_for(Asset.BTC)
+    eth: SentimentSignal = SentimentSignal.field_for(Asset.ETH)
+    xrp: SentimentSignal = SentimentSignal.field_for(Asset.XRP)
 
     reasoning: str = Field(
         description=dedent("""
             The reasoning behind the sentiment signals for the assets.
             """).strip(),
     )
+
+    def to_feature(self) -> dict[str, Any]:
+        return self.unpack() | {
+            "btc": self.btc.to_int(),
+            "eth": self.eth.to_int(),
+            "xrp": self.xrp.to_int(),
+        }
 
 
 class NewsStorySentimentAnalysis(SentimentAnalysisResult):
