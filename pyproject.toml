@@ -8,7 +8,7 @@ dependencies = [
   "ta",
   "features",
   "news",
-  "news-signals",
+  "news_signals",
   "domain",
   # python packages
   "fastapi[all]>=0.115.5",
@@ -35,8 +35,9 @@ dev-dependencies = [
 trades = { workspace = true }
 candles = { workspace = true }
 ta = { workspace = true }
+features = { workspace = true }
 news = { workspace = true }
-news-signals = { workspace = true }
+news_signals = { workspace = true }
 domain = { workspace = true }
 
 [tool.uv.workspace]
@@ -58,7 +59,7 @@ known-first-party = [
   "candles",
   "ta",
   "news",
-  "news-signals",
+  "news_signals",
   # libs
   "domain", 
 ]

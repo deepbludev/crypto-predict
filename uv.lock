@@ -8,6 +8,7 @@ members = [
     "domain",
     "features",
     "news",
+    "news-signals",
     "ta",
     "trades",
 ]
@@ -211,9 +212,12 @@ dependencies = [
     { name = "candles" },
     { name = "domain" },
     { name = "fastapi", extra = ["all"] },
+    { name = "features" },
     { name = "hopsworks" },
     { name = "httpx" },
     { name = "loguru" },
+    { name = "news" },
+    { name = "news-signals" },
     { name = "numpy" },
     { name = "pyarrow" },
     { name = "pydantic" },
@@ -237,9 +241,12 @@ requires-dist = [
     { name = "candles", editable = "services/candles" },
     { name = "domain", editable = "libs/domain" },
     { name = "fastapi", extras = ["all"], specifier = ">=0.115.5" },
+    { name = "features", editable = "services/features" },
     { name = "hopsworks", specifier = ">=4.1.3" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "loguru", specifier = ">=0.7.2" },
+    { name = "news", editable = "services/news" },
+    { name = "news-signals", editable = "services/news_signals" },
     { name = "numpy", specifier = ">=1.26.4" },
     { name = "pyarrow", specifier = ">=18.1.0" },
     { name = "pydantic", specifier = ">=2.9.2" },
@@ -747,6 +754,16 @@ wheels = [
 name = "news"
 version = "0.1.0"
 source = { editable = "services/news" }
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = []
+
+[[package]]
+name = "news-signals"
+version = "0.1.0"
+source = { editable = "services/news_signals" }
 
 [package.metadata]
 
