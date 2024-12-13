@@ -38,6 +38,15 @@ class Exchange(str, Enum):
     GEMINI = "GEMINI"
 
 
+class Asset(str, Enum):
+    """Asset Enum"""
+
+    BTC = "BTC"
+    ETH = "ETH"
+    XRP = "XRP"
+    XLM = "XLM"
+
+
 class Symbol(str, Enum):
     """Trade symbols Enum"""
 

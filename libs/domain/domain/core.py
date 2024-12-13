@@ -1,3 +1,4 @@
+from time import time
 from typing import Any, Self
 
 from pydantic import BaseModel
@@ -27,3 +28,8 @@ class Schema(BaseModel):
     def parse(cls, obj: Any) -> Self:
         """Validate the obj."""
         return cls.model_validate(obj)
+
+
+def now_timestamp() -> int:
+    """Get the current timestamp in milliseconds."""
+    return int(time() * 1000)

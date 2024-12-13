@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from enum import Enum
-from time import time
 
 from pydantic import Field
 
-from domain.core import Schema
+from domain.core import Schema, now_timestamp
 
 
 class NewsOutlet(str, Enum):
@@ -26,4 +25,4 @@ class NewsStory(Schema):
     source: str
     published_at: str
     url: str
-    timestamp: int = Field(default_factory=lambda: int(time() * 1000))
+    timestamp: int = Field(default_factory=now_timestamp)

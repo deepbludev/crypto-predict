@@ -87,7 +87,6 @@ class CryptoPanicClient:
         try:
             response = requests.get(url)
             data = response.json()
-            logger.debug(f"[{self.outlet}] Fetched news batch from {url}")
 
         except Exception as e:
             logger.error(f"[{self.outlet}] Error fetching news: {e}")
