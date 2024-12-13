@@ -4,6 +4,7 @@ from textwrap import dedent
 from pydantic import Field
 
 from domain.core import Schema, now_timestamp
+from domain.llm import LLMModel
 from domain.trades import Asset
 
 
@@ -53,3 +54,4 @@ class SentimentAnalysisResult(Schema):
 class NewsStorySentimentAnalysis(SentimentAnalysisResult):
     story: str
     timestamp: int = Field(default_factory=now_timestamp)
+    llm_model: LLMModel

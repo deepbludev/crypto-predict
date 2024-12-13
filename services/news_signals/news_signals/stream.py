@@ -1,6 +1,11 @@
 import quixstreams as qs
 from loguru import logger
 
+from domain.news import NewsStory
+from domain.sentiment_analysis import NewsStorySentimentAnalysis
+from news_signals.core.settings import news_signals_settings
+from news_signals.signals import get_sentiment_analyzer
+
 
 def run_stream(stream_app: qs.Application):
     """Builds the stream and runs it."""
@@ -18,6 +23,20 @@ def run_stream(stream_app: qs.Application):
 def generate_signal_from_news(stream_app: qs.Application):
     """
     Generates news signals from news using an LLM.
+
+    It consumes news stories from the messagebus and produces
+    news signals to the messagebus.
     """
+    settings, analyzer = news_signals_settings(), get_sentiment_analyzer()
+    (
+        stream_app.dataframe(topic=stream_app.topic(name=settings.input_topic))
+        .apply(NewsStory.parse)
+        .apply(analyzer.analyze)
+        .apply(NewsStorySentimentAnalysis.serialize)
+        .to_topic(stream_app.topic(name=settings.output_topic))
+        .update(
+            lambda signal: logger.info(f"[{signal['llm_model']}] News Signal: {signal}")
+        )
+    )
 
     return stream_app
