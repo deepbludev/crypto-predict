@@ -16,7 +16,7 @@ def get_sentiment_analyzer() -> SentimentAnalyzer:
     match provider:
         case LLMProvider.OLLAMA:
             logger.info(
-                f"Using Ollama: model={model}, base_url=settings.ollama_base_url",
+                f"Using Ollama: model={model}, base_url={settings.ollama_base_url}",
             )
             return OllamaSentimentAnalyzer(
                 model,
