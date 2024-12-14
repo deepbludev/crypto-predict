@@ -14,18 +14,6 @@ from domain.trades import Asset
 
 from .analyzer import SentimentAnalyzer
 
-assets = [a.value for a in Asset]
-signals = [s.value for s in SentimentSignal]
-template = """
-You are an expert crypto financial analyst.
-You are given a news story and you need to provide a sentiment signal
-based on the impact of the news on the prices of the following crypto assets: BTC, ETH, XRP.
-The result of the sentiment analysis for each asset should be one of the following: BEARISH, NEUTRAL, BULLISH.
-
-Here is the news story:
-{news_story}
-"""  # noqa: E501
-
 
 class OllamaSentimentAnalyzer(SentimentAnalyzer):
     """Sentiment analyzer using Ollama."""
