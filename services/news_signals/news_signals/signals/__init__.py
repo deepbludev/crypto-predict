@@ -1,3 +1,5 @@
+from loguru import logger
+
 from domain.llm import LLMProvider
 from news_signals.core.settings import news_signals_settings
 
@@ -13,7 +15,17 @@ def get_sentiment_analyzer() -> SentimentAnalyzer:
 
     match provider:
         case LLMProvider.OLLAMA:
-            return OllamaSentimentAnalyzer(model)
+            logger.info(
+                f"Using Ollama: model={model}, base_url=settings.ollama_base_url",
+            )
+            return OllamaSentimentAnalyzer(
+                model,
+                base_url=settings.ollama_base_url,
+            )
 
         case LLMProvider.ANTHROPIC:
-            return AnthropicSentimentAnalyzer(model)
+            logger.info(f"Using Anthropic: model={model}")
+            return AnthropicSentimentAnalyzer(
+                model,
+                api_key=settings.anthropic_api_key,
+            )

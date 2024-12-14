@@ -7,6 +7,7 @@ from domain.llm import LLMModel
 from domain.news import NewsStory
 from domain.sentiment_analysis import (
     NewsStorySentimentAnalysis,
+    SentimentAnalysisResult,
     SentimentSignal,
 )
 from domain.trades import Asset
@@ -29,17 +30,18 @@ Here is the news story:
 class OllamaSentimentAnalyzer(SentimentAnalyzer):
     """Sentiment analyzer using Ollama."""
 
-    def __init__(self, llm_model: LLMModel):
-        self.llm = Ollama(model=llm_model, temperature=0)
+    def __init__(self, llm_model: LLMModel, base_url: str):
+        self.llm = Ollama(model=llm_model, base_url=base_url, temperature=0)
         self.prompt_template = PromptTemplate(template=dedent(template).strip())
 
         super().__init__(llm_model)
 
     def analyze(self, story: NewsStory) -> NewsStorySentimentAnalysis:
         result = self.llm.structured_predict(
-            NewsStorySentimentAnalysis,
-            prompt=self.prompt_template,
-            news_story=story.title,
+            SentimentAnalysisResult, prompt=self.prompt_template, news_story=story.title
         )
-        print("result:", result)
-        return NewsStorySentimentAnalysis.parse(result.model_dump())
+        return NewsStorySentimentAnalysis(
+            story=story.title,
+            llm_model=self.llm_model,
+            **result.model_dump(),
+        )

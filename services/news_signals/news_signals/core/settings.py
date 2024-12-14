@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     llm_provider: LLMProvider = LLMProvider.OLLAMA
     llm_model: LLMModel = LLMModel.LLAMA_3_2_3B
 
+    # Ollama
+    ollama_base_url: str = "http://localhost:11434"
+
     # Anthropic
     anthropic_api_key: str = "<anthropic-api-key>"
 
