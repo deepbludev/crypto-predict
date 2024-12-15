@@ -83,7 +83,7 @@ services:
   # --- Features service
   # ----------------------------------------
   features:
-    container_name: features
+    container_name: features_ta
     build:
       context: ..
       dockerfile: .docker/Dockerfile
@@ -95,6 +95,13 @@ services:
       - 8004:8004
     environment:
       - FEATURES_BROKER_ADDRESS=redpanda:9092
+      - FEATURES_CONSUMER_GROUP="cg_features_ta"
+      - FEATURES_INPUT_TOPIC="ta"
+      - FEATURES_FG_NAME="ta"
+      - FEATURES_FG_VERSION="1"
+      - FEATURES_FG_PK=["symbol", "timeframe"]
+      - FEATURES_FG_EVENT_TIME="timestamp"
+      - FEATURES_FG_MATERIALIZATION_JOB_SCHEDULE="0 0/15 * ? * * *"
     env_file:
       - ../services/features/.env
     restart: always

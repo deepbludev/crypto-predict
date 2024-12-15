@@ -57,3 +57,34 @@ services:
       - cryptopredict-messagebus_cryptopredict-network
     volumes:
       - ../state:/app/state
+
+  # ----------------------------------------
+  # --- Features service
+  # ----------------------------------------
+  features:
+    container_name: features_news_signals
+    build:
+      context: ..
+      dockerfile: .docker/Dockerfile
+      args:
+        SERVICE_NAME: features
+        PORT: 8104
+    command: fastapi dev app/services/features/features --port 8004
+    ports:
+      - 8104:8004
+    environment:
+      - FEATURES_BROKER_ADDRESS=redpanda:9092
+      - FEATURES_CONSUMER_GROUP="cg_features_news_signals"
+      - FEATURES_INPUT_TOPIC="news_signals"
+      - FEATURES_FG_NAME="news_signals"
+      - FEATURES_FG_VERSION="1"
+      - FEATURES_FG_PK=["llm_model"]
+      - FEATURES_FG_EVENT_TIME="timestamp"
+      - FEATURES_FG_MATERIALIZATION_JOB_SCHEDULE="0 0/15 * ? * * *"
+    env_file:
+      - ../services/features/.env
+    restart: always
+    networks:
+      - cryptopredict-messagebus_cryptopredict-network
+    volumes:
+     - ../state:/app/state
