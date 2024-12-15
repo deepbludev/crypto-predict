@@ -29,7 +29,7 @@ services:
     networks:
       - cryptopredict-messagebus_cryptopredict-network
     volumes:
-      - ./state:/app/state
+     - ../state:/app/state
 
   # ----------------------------------------
   # --- Candles service
@@ -53,7 +53,7 @@ services:
     networks:
       - cryptopredict-messagebus_cryptopredict-network
     volumes:
-      - ./state:/app/state
+     - ../state:/app/state
 
   # ----------------------------------------
   # --- TA service
@@ -77,7 +77,7 @@ services:
     networks:
       - cryptopredict-messagebus_cryptopredict-network
     volumes:
-      - ./state:/app/state
+     - ../state:/app/state
 
   # ----------------------------------------
   # --- Features service
@@ -101,4 +101,4 @@ services:
     networks:
       - cryptopredict-messagebus_cryptopredict-network
     volumes:
-      - ./state:/app/state
+     - ../state:/app/state

@@ -1,0 +1,59 @@
+# Docker Compose file for the Sentiment Signals Feature Pipeline
+
+name: cryptopredict-sentiment_signals
+
+networks:
+  cryptopredict-messagebus_cryptopredict-network:
+    external: true
+
+services:
+  # ----------------------------------------
+  # --- News service
+  # ----------------------------------------
+  news:
+    container_name: news
+    build:
+      context: ..
+      dockerfile: .docker/Dockerfile
+      args:
+        SERVICE_NAME: news
+        PORT: 8005
+    command: fastapi dev app/services/news/news --port 8005
+    ports:
+      - 8005:8005
+    environment:
+      - NEWS_BROKER_ADDRESS=redpanda:9092
+    env_file:
+      - ../services/news/.env
+    restart: always
+    networks:
+      - cryptopredict-messagebus_cryptopredict-network
+    volumes:
+      - ../state:/app/state
+
+  # ----------------------------------------
+  # --- News Signals service
+  # ----------------------------------------
+  news_signals:
+    container_name: news_signals
+    build:
+      context: ..
+      dockerfile: .docker/Dockerfile
+      args:
+        SERVICE_NAME: news_signals
+        PORT: 8006
+    command: fastapi dev app/services/news_signals/news_signals --port 8006
+    ports:
+      - 8006:8006
+    environment:
+      - NEWS_SIGNALS_BROKER_ADDRESS=redpanda:9092
+      - NEWS_SIGNALS_OLLAMA_BASE_URL=http://host.docker.internal:11434
+    env_file:
+      - ../services/news_signals/.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: always
+    networks:
+      - cryptopredict-messagebus_cryptopredict-network
+    volumes:
+      - ../state:/app/state

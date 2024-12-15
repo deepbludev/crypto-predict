@@ -25,22 +25,31 @@ def ollama_analyzer() -> OllamaSentimentAnalyzer:
     [
         (
             # case 1: All assets are bullish
-            "SEC approves Bitcoin ETF. Unprecedented move to boost crypto adoption for all cryptos.",  # noqa: E501
+            """
+            SEC approves Bitcoin ETF. Unprecedented move to boost crypto adoption
+            for all cryptos.
+            """,
             BULLISH,
             BULLISH,
             BULLISH,
         ),
         (
             # case 2: All assets are bearish
-            "SEC rejects Bitcoin ETF. Expected to hurt crypto adoption in general.",  # noqa: E501
+            """
+            SEC rejects Bitcoin ETF. Expected to hurt crypto adoption in general.
+            """,
             BEARISH,
             BEARISH,
             BEARISH,
         ),
         (
             # case 3: BTC is bullish, ETH is neutral, XRP is bearish
-            "Bitcoin price is up 10% today. BTC is expected to continue its bullish trend. Not looking so good for XRP.",  # noqa: E501
-            NEUTRAL,
+            """
+            Bitcoin price is up 10% today.
+            BTC is expected to continue its bullish trend.
+            Nevertheless, XRP is not looking so good as BTC.
+            """,
+            BULLISH,
             NEUTRAL,
             BEARISH,
         ),

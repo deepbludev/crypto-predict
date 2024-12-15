@@ -1,6 +1,26 @@
+CLUSTERS = messagebus indicators indicators_historical sentiment_signals
+SERVICES = trades candles ta features news news_signals
+SERVICES_PATH = services/$(svc)/$(svc)
+PORTS = trades=8001 candles=8002 ta=8003 features=8004 news=8005 news_signals=8006
+
+# Get the port for a service from the PORTS variable
+port_for_service = $(word 2,$(subst =, ,$(filter $(1)=%,$(PORTS))))
+
 # ----------------------------------------
 # Infrastructure
 # ----------------------------------------
+# Commands for running services in docker compose as clusters.
+#
+# Available clusters:
+# - messagebus
+# - indicators
+# - indicators-historical
+# - sentiment-signals
+#
+# Build a service in a cluster
+# Usage: make build cluster=cryptopredict-messagebus svc=trades
+# Available services: $(SERVICES)
+
 build:
 	docker compose -f .docker/$(cluster).compose.yaml up --build -d $(svc)
 
@@ -23,6 +43,25 @@ clean-backfill:
 	docker compose exec redpanda rpk topic delete -r ".*historical.*"
 	@echo "Fetching historical consumer groups..."
 	docker compose exec redpanda rpk group list | grep historical | xargs -r docker compose exec redpanda rpk group delete
+
+
+# ----------------------------------------
+# Services
+# ----------------------------------------
+run:
+ifeq ($(filter $(svc),$(SERVICES)),$(svc))
+	uv run fastapi run $(SERVICES_PATH) --port $(call port_for_service,$(svc))
+else
+	@echo "Invalid service: $(svc)"
+endif
+
+dev:
+ifeq ($(filter $(svc),$(SERVICES)),$(svc))
+	uv run fastapi dev $(SERVICES_PATH) --port $(call port_for_service,$(svc))
+else
+	@echo "Invalid service: $(svc)"
+endif
+
 
 # ----------------------------------------
 # Development
@@ -52,26 +91,5 @@ clean:
 	find . -type d -name ".ruff_cache" -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
 
-# ----------------------------------------
-# Services
-# ----------------------------------------
-SERVICES = trades candles ta features news news_signals
-SERVICES_PATH = services/$(svc)/$(svc)
-PORTS = trades=8001 candles=8002 ta=8003 features=8004 news=8005 news_signals=8006
-# Get the port for a service from the PORTS variable
-port_for_service = $(word 2,$(subst =, ,$(filter $(1)=%,$(PORTS))))
 
-run:
-ifeq ($(filter $(svc),$(SERVICES)),$(svc))
-	uv run fastapi run $(SERVICES_PATH) --port $(call port_for_service,$(svc))
-else
-	@echo "Invalid service: $(svc)"
-endif
-
-dev:
-ifeq ($(filter $(svc),$(SERVICES)),$(svc))
-	uv run fastapi dev $(SERVICES_PATH) --port $(call port_for_service,$(svc))
-else
-	@echo "Invalid service: $(svc)"
-endif
 
