@@ -55,7 +55,6 @@ def ollama_analyzer() -> OllamaSentimentAnalyzer:
             id="Case 3: BTC is bullish, ETH is neutral, XRP is bearish",
         ),
         pytest.param(
-            # Case 4: BTC and ETH are bullish, XRP neutral
             """
             Ethereum and Bitcoin show strong momentum as Layer 1 solutions gain
             traction. ETH 2.0 staking hits new highs while BTC hashrate reaches
@@ -97,6 +96,92 @@ def ollama_analyzer() -> OllamaSentimentAnalyzer:
             BEARISH,
             BEARISH,
             id="Case 7: Regulatory news affecting specific assets",
+        ),
+        pytest.param(
+            """
+            Major institutional investors announce plans to increase crypto holdings,
+            with focus on Bitcoin and Ethereum. Traditional finance continues to
+            embrace digital assets.
+            """,
+            BULLISH,
+            BULLISH,
+            NEUTRAL,
+            id="Case 8: Institutional adoption favoring BTC and ETH",
+        ),
+        pytest.param(
+            """
+            Global economic uncertainty rises as inflation concerns grow.
+            Bitcoin's narrative as digital gold strengthens while altcoins
+            face selling pressure.
+            """,
+            BULLISH,
+            BEARISH,
+            BEARISH,
+            id="Case 9: Market uncertainty favoring BTC as safe haven",
+        ),
+        pytest.param(
+            """
+            Technical analysis shows crypto market entering oversold territory.
+            Bitcoin's dominance index declining as altcoins gain momentum.
+            XRP leads altcoin recovery.
+            """,
+            NEUTRAL,
+            BULLISH,
+            BULLISH,
+            id="Case 10: Altcoin season scenario",
+        ),
+        pytest.param(
+            """
+            Major crypto exchange faces regulatory scrutiny and potential fines.
+            Trading volumes drop across all major cryptocurrencies amid
+            growing concerns.
+            """,
+            BEARISH,
+            BEARISH,
+            BEARISH,
+            id="Case 11: Exchange FUD affecting entire market",
+        ),
+        pytest.param(
+            """
+            Ethereum gas fees hit record lows after successful network upgrade.
+            Layer 2 solutions show promising adoption metrics.
+            """,
+            NEUTRAL,
+            BULLISH,
+            NEUTRAL,
+            id="Case 12: ETH-specific technical improvement",
+        ),
+        pytest.param(
+            """
+            Breaking: Major country announces complete ban on crypto trading.
+            Bitcoin mining operations forced to relocate. Market impact yet
+            to be determined.
+            """,
+            BEARISH,
+            NEUTRAL,
+            NEUTRAL,
+            id="Case 13: Regulatory crackdown primarily affecting BTC",
+        ),
+        pytest.param(
+            """
+            XRP wins landmark court case against regulatory body.
+            Legal clarity expected to boost institutional adoption of
+            regulated cryptocurrencies.
+            """,
+            NEUTRAL,
+            NEUTRAL,
+            BULLISH,
+            id="Case 14: XRP-specific positive legal development",
+        ),
+        pytest.param(
+            """
+            Cryptocurrency market experiences flash crash as major stablecoin
+            loses dollar peg. All major assets affected in the short term.
+            """,
+            BEARISH,
+            BEARISH,
+            BEARISH,
+            id="Case 15: Systemic risk affecting all assets",
         ),
     ],
 )
