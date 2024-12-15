@@ -26,7 +26,6 @@ class SentimentSignal(str, Enum):
     @classmethod
     def field_for(cls, asset: Asset):
         return Field(
-            default=cls.NEUTRAL,
             description=dedent(f"""
                 The sentiment signal for the {asset} asset, based on the impact
                 of the news on the {asset} price.
@@ -39,15 +38,24 @@ class SentimentSignal(str, Enum):
 
 
 class SentimentAnalysisResult(Schema):
-    btc: SentimentSignal = SentimentSignal.field_for(Asset.BTC)
-    eth: SentimentSignal = SentimentSignal.field_for(Asset.ETH)
-    xrp: SentimentSignal = SentimentSignal.field_for(Asset.XRP)
+    btc: str = SentimentSignal.field_for(Asset.BTC)
+    eth: str = SentimentSignal.field_for(Asset.ETH)
+    xrp: str = SentimentSignal.field_for(Asset.XRP)
 
     reasoning: str = Field(
-        description=dedent("""
-            The reasoning behind the sentiment signals for the assets.
-            """).strip(),
+        description="The reasoning behind the sentiment signals for the assets."
     )
+
+
+class NewsStorySentimentAnalysis(Schema):
+    story: str
+    timestamp: int = Field(default_factory=now_timestamp)
+    llm_model: LLMModel
+
+    btc: SentimentSignal
+    eth: SentimentSignal
+    xrp: SentimentSignal
+    reasoning: str
 
     def to_feature(self) -> dict[str, Any]:
         return self.unpack() | {
@@ -55,9 +63,3 @@ class SentimentAnalysisResult(Schema):
             "eth": self.eth.to_int(),
             "xrp": self.xrp.to_int(),
         }
-
-
-class NewsStorySentimentAnalysis(SentimentAnalysisResult):
-    story: str
-    timestamp: int = Field(default_factory=now_timestamp)
-    llm_model: LLMModel
