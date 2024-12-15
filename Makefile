@@ -14,8 +14,8 @@ port_for_service = $(word 2,$(subst =, ,$(filter $(1)=%,$(PORTS))))
 # Available clusters:
 # - messagebus
 # - indicators
-# - indicators-historical
-# - sentiment-signals
+# - indicators_historical
+# - sentiment_signals
 #
 # Build a service in a cluster
 # Usage: make build cluster=cryptopredict-messagebus svc=trades
