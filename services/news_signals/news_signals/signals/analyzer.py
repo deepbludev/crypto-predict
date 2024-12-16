@@ -7,7 +7,7 @@ from llama_index.core.prompts import PromptTemplate
 from domain.llm import LLMModel
 from domain.news import NewsStory
 from domain.sentiment_analysis import (
-    AssetSentimentAnalysis,
+    AssetSentimentAnalysisDetails,
     NewsStorySentimentAnalysis,
 )
 from domain.trades import Asset
@@ -22,10 +22,15 @@ prompt = f"""
     Available assets to consider in the analysis: {assets}
     Possible sentiment signals: BULLISH, BEARISH
     
+    CRITICAL: You must ONLY include assets from the provided list of available assets.
+    Any other assets, even if mentioned in the news, must be ignored.
+    
     Important Response Guidelines:
+    - Only include assets that are in the available assets list - no exceptions
     - Only include assets in the response that are DIRECTLY or INDIRECTLY affected by the news
     - If the news has no clear impact on an asset (neutral), DO NOT include it in the response
     - If the news has no relevant impact on any assets, return an empty list []
+    - The asset MUST be exactly as written in the available assets list, no variations allowed
     
     For the relevant assets, provide a sentiment signal based on these criteria:
 
@@ -51,7 +56,7 @@ prompt = f"""
     ]
     
     Where:
-    - "asset" must be one of: {assets}
+    - "asset" must be EXACTLY one of: {assets}
     - "sentiment" must be either: "BULLISH" or "BEARISH"
     
     Examples of valid responses:
@@ -70,6 +75,21 @@ prompt = f"""
     
     3. News: "Crypto exchange updates its UI design"
     []
+
+    Examples of INVALID responses:
+    News: "USD and EUR rise against major currencies, while Bitcoin falls"
+    [
+        {{"asset": "USD", "sentiment": "BULLISH"}},  # WRONG - USD is not in available assets
+        {{"asset": "EUR", "sentiment": "BULLISH"}},  # WRONG - EUR is not in available assets
+    ]
+
+    News: "Solana and Cardano show strong growth, while Dogecoin struggles"
+    [
+        {{"asset": "SOL", "sentiment": "BULLISH"}},  # WRONG - SOL is not in available assets
+        {{"asset": "ADA", "sentiment": "BULLISH"}},  # WRONG - ADA is not in available assets
+        {{"asset": "DOGE", "sentiment": "BEARISH"}}  # WRONG - DOGE is not in available assets
+    ]
+    # Correct response would be [] if none of the available assets are affected
     
     News story to analyze:
     {{news_story}}
@@ -78,7 +98,7 @@ prompt = f"""
 """  # noqa
 
 
-AssetSentimentAnalysisList = pydantic.RootModel[list[AssetSentimentAnalysis]]
+AssetSentimentAnalysisList = pydantic.RootModel[list[AssetSentimentAnalysisDetails]]
 """
 A list of AssetSentimentAnalysis objects.
 Used as the structured output type for the LLM.

@@ -28,15 +28,28 @@ def generate_signal_from_news(stream_app: qs.Application):
     news signals to the messagebus.
     """
     settings, analyzer = news_signals_settings(), get_sentiment_analyzer()
+    topic = stream_app.topic(name=settings.output_topic)
+
+    def produce_all_assets(analysis: NewsStorySentimentAnalysis):
+        """
+        Produces each signal to the output topic.
+        """
+        asset_analysis = analysis.unwind()
+        with stream_app.get_producer() as p:
+            for a in asset_analysis:
+                msg = topic.serialize(key=a.asset, value=a.unpack())
+                p.produce(topic=topic.name, value=msg.value, key=msg.key)
+                logger.info(
+                    f"[{a.asset}] News Signal: " f"{a.sentiment} ({a.timestamp})"
+                )
+
+    # Stream the news stories and produce the signals
     (
         stream_app.dataframe(topic=stream_app.topic(name=settings.input_topic))
+        .update(lambda story: logger.info(f"Analyzing story: {story.title}"))
         .apply(NewsStory.parse)
         .apply(analyzer.analyze)
-        .apply(NewsStorySentimentAnalysis.to_feature)
-        .to_topic(stream_app.topic(name=settings.output_topic))
-        .update(
-            lambda signal: logger.info(f"[{signal['llm_model']}] News Signal: {signal}")
-        )
+        .apply(produce_all_assets)
     )
 
     return stream_app

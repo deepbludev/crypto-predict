@@ -1,6 +1,5 @@
 from enum import Enum
 from textwrap import dedent
-from typing import Any
 
 from pydantic import Field
 
@@ -21,8 +20,14 @@ class SentimentSignal(str, Enum):
                 return -1
 
 
-class AssetSentimentAnalysis(Schema):
-    asset: Asset = Field(description="The asset to analyze the sentiment for")
+assets = [a.value for a in Asset]
+
+
+class AssetSentimentAnalysisDetails(Schema):
+    asset: Asset = Field(
+        description=f"The asset to analyze the sentiment for. "
+        f"Must be one of the assets in the asset list: {assets}"
+    )
     sentiment: SentimentSignal = Field(
         description=dedent("""
             The sentiment signal for the asset, based on the impact
@@ -33,21 +38,25 @@ class AssetSentimentAnalysis(Schema):
     )
 
 
+class AssetSentimentAnalysis(AssetSentimentAnalysisDetails):
+    llm_model: LLMModel
+    story: str
+    timestamp: int = Field(default_factory=now_timestamp)
+
+
 class NewsStorySentimentAnalysis(Schema):
     story: str
     timestamp: int = Field(default_factory=now_timestamp)
     llm_model: LLMModel
-    asset_sentiments: list[AssetSentimentAnalysis]
+    asset_sentiments: list[AssetSentimentAnalysisDetails]
 
-    def to_feature(self) -> list[dict[str, Any]]:
-        # TODO: extract logic to separate schema
+    def unwind(self) -> list[AssetSentimentAnalysis]:
         return [
-            {
-                "asset": s.asset,
-                "sentiment": s.sentiment.to_int(),
-                "story": self.story,
-                "timestamp": self.timestamp,
-                "llm_model": self.llm_model,
-            }
-            for s in self.asset_sentiments
+            AssetSentimentAnalysis(
+                **sentiment.unpack(),
+                llm_model=self.llm_model,
+                story=self.story,
+                timestamp=self.timestamp,
+            )
+            for sentiment in self.asset_sentiments
         ]
