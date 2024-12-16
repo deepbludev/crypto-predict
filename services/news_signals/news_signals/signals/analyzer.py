@@ -1,29 +1,33 @@
 from textwrap import dedent
 
+import pydantic
 from llama_index.core.llms import LLM
 from llama_index.core.prompts import PromptTemplate
 
 from domain.llm import LLMModel
 from domain.news import NewsStory
 from domain.sentiment_analysis import (
+    AssetSentimentAnalysis,
     NewsStorySentimentAnalysis,
-    SentimentAnalysisResult,
-    SentimentSignal,
 )
 from domain.trades import Asset
 
 assets = ", ".join(a.value for a in Asset)
-signals = ", ".join(s.value for s in SentimentSignal)
 prompt = f"""
     You are an expert crypto financial analyst with deep knowledge of market dynamics and sentiment analysis.
     
     Analyze the following news story and determine its potential impact on crypto asset prices.
     Focus on both direct mentions and indirect implications for each asset.
     
-    Available assets to analyze: {assets}
-    Possible sentiment signals: {signals}
+    Available assets to consider in the analysis: {assets}
+    Possible sentiment signals: BULLISH, BEARISH
     
-    For each asset ({assets}), provide a sentiment signal based on these criteria:
+    Important Response Guidelines:
+    - Only include assets in the response that are DIRECTLY or INDIRECTLY affected by the news
+    - If the news has no clear impact on an asset (neutral), DO NOT include it in the response
+    - If the news has no relevant impact on any assets, return an empty list []
+    
+    For the relevant assets, provide a sentiment signal based on these criteria:
 
     BULLISH when:
     - The news suggests positive price movement
@@ -35,19 +39,50 @@ prompt = f"""
     - There are concerning developments or risks
     - The asset might be negatively impacted by market conditions
     
-    NEUTRAL when:
-    - The news has no clear impact on the asset
-    - The effects are mixed or unclear
-    - The news is unrelated to the asset
+    When analyzing the news, consider:
+    - Direct mentions and explicit effects on specific assets
+    - Indirect implications and market dynamics
+    - Cross-asset correlations and ecosystem effects
+    - Only include assets where you can justify a clear BULLISH or BEARISH sentiment
     
-    In your reasoning, explain:
-    1. The key factors influencing your decision for each asset
-    2. Any potential indirect effects
-    3. The relative strength of the impact
+    IMPORTANT: Your response must be a valid JSON array containing objects with exactly these fields:
+    [
+        {{"asset": string, "sentiment": string}}
+    ]
+    
+    Where:
+    - "asset" must be one of: {assets}
+    - "sentiment" must be either: "BULLISH" or "BEARISH"
+    
+    Examples of valid responses:
+
+    1. News: "Goldman Sachs wants to invest in Bitcoin and Ethereum, but not in XRP."
+    [
+        {{"asset": "BTC", "sentiment": "BULLISH"}},
+        {{"asset": "ETH", "sentiment": "BULLISH"}},
+        {{"asset": "XRP", "sentiment": "BEARISH"}}
+    ]
+
+    2. News: "Bitcoin mining difficulty increases by 10%"
+    [
+        {{"asset": "BTC", "sentiment": "BULLISH"}}
+    ]
+    
+    3. News: "Crypto exchange updates its UI design"
+    []
     
     News story to analyze:
     {{news_story}}
+    
+    Response (valid JSON array only):
 """  # noqa
+
+
+AssetSentimentAnalysisList = pydantic.RootModel[list[AssetSentimentAnalysis]]
+"""
+A list of AssetSentimentAnalysis objects.
+Used as the structured output type for the LLM.
+"""
 
 
 class SentimentAnalyzer:
@@ -65,12 +100,12 @@ class SentimentAnalyzer:
             NewsStorySentimentAnalysis: The sentiment analysis result.
         """
         result = self.llm.structured_predict(
-            SentimentAnalysisResult,
+            output_cls=AssetSentimentAnalysisList,
             prompt=self.prompt_template,
             news_story=story.title,
         )
         return NewsStorySentimentAnalysis(
+            asset_sentiments=result.root,
             llm_model=self.llm_model,
             story=story.title,
-            **result.model_dump(),
         )

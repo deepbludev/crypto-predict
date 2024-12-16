@@ -1,5 +1,5 @@
 """
-Candles service
+News signals service
 """
 
 from .main import app

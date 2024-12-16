@@ -2,14 +2,12 @@ import pytest
 
 from domain.llm import LLMModel
 from domain.news import NewsOutlet, NewsStory
-from domain.sentiment_analysis import SentimentSignal
+from domain.sentiment_analysis import AssetSentimentAnalysis, SentimentSignal
+from domain.trades import Asset
 from news_signals.signals.ollama import OllamaSentimentAnalyzer
 
-BULLISH, NEUTRAL, BEARISH = (
-    SentimentSignal.BULLISH,
-    SentimentSignal.NEUTRAL,
-    SentimentSignal.BEARISH,
-)
+BULLISH, BEARISH = SentimentSignal.BULLISH, SentimentSignal.BEARISH
+BTC, ETH, XRP = Asset.BTC, Asset.ETH, Asset.XRP
 
 
 @pytest.fixture
@@ -21,27 +19,30 @@ def ollama_analyzer() -> OllamaSentimentAnalyzer:
 
 
 @pytest.mark.parametrize(
-    "story, expected_btc, expected_eth, expected_xrp",
+    "story, expected_sentiments",
     [
         pytest.param(
             """
             SEC approves Bitcoin ETF. Unprecedented move to boost crypto adoption
             for all cryptos.
             """,
-            BULLISH,
-            BULLISH,
-            BULLISH,
-            id="Case 1: All assets are bullish",
+            [
+                AssetSentimentAnalysis(asset=BTC, sentiment=BULLISH),
+                AssetSentimentAnalysis(asset=ETH, sentiment=BULLISH),
+            ],
+            id="All assets are bullish",
         ),
         pytest.param(
             """
             SEC rejects Bitcoin ETF. Expected to hurt crypto adoption for all
             cryptos.
             """,
-            BEARISH,
-            BEARISH,
-            BEARISH,
-            id="Case 2: All assets are bearish",
+            [
+                AssetSentimentAnalysis(asset=BTC, sentiment=BEARISH),
+                AssetSentimentAnalysis(asset=ETH, sentiment=BEARISH),
+                AssetSentimentAnalysis(asset=XRP, sentiment=BEARISH),
+            ],
+            id="All assets are bearish",
         ),
         pytest.param(
             """
@@ -49,10 +50,11 @@ def ollama_analyzer() -> OllamaSentimentAnalyzer:
             BTC is expected to continue its bullish trend.
             Nevertheless, XRP is not looking so good as BTC.
             """,
-            BULLISH,
-            NEUTRAL,
-            BEARISH,
-            id="Case 3: BTC is bullish, ETH is neutral, XRP is bearish",
+            [
+                AssetSentimentAnalysis(asset=BTC, sentiment=BULLISH),
+                AssetSentimentAnalysis(asset=ETH, sentiment=BULLISH),
+            ],
+            id="BTC is bullish, ETH is neutral, XRP is bearish",
         ),
         pytest.param(
             """
@@ -60,20 +62,22 @@ def ollama_analyzer() -> OllamaSentimentAnalyzer:
             traction. ETH 2.0 staking hits new highs while BTC hashrate reaches
             record levels.
             """,
-            BULLISH,
-            BULLISH,
-            NEUTRAL,
-            id="Case 4: BTC and ETH are bullish, XRP neutral",
+            [
+                AssetSentimentAnalysis(asset=BTC, sentiment=BULLISH),
+                AssetSentimentAnalysis(asset=ETH, sentiment=BULLISH),
+            ],
+            id="BTC and ETH are bullish, XRP neutral",
         ),
         pytest.param(
             """
             SEC investigation into Ethereum's security status creates uncertainty.
             Ripple faces new legal challenges. Bitcoin trades sideways.
             """,
-            NEUTRAL,
-            BEARISH,
-            BEARISH,
-            id="Case 5: BTC neutral, ETH and XRP bearish",
+            [
+                AssetSentimentAnalysis(asset=ETH, sentiment=BEARISH),
+                AssetSentimentAnalysis(asset=XRP, sentiment=BEARISH),
+            ],
+            id="BTC neutral, ETH and XRP bearish",
         ),
         pytest.param(
             """
@@ -81,10 +85,11 @@ def ollama_analyzer() -> OllamaSentimentAnalyzer:
             Meanwhile, Bitcoin consolidates at current levels.
             Ripple (XRP) drops 5% on profit taking.
             """,
-            NEUTRAL,
-            BULLISH,
-            BEARISH,
-            id="Case 6: Mixed with emphasis on ETH",
+            [
+                AssetSentimentAnalysis(asset=BTC, sentiment=BEARISH),
+                AssetSentimentAnalysis(asset=ETH, sentiment=BULLISH),
+            ],
+            id="Mixed with emphasis on ETH",
         ),
         pytest.param(
             """
@@ -92,10 +97,11 @@ def ollama_analyzer() -> OllamaSentimentAnalyzer:
             Bitcoin remains unaffected due to commodity classification.
             ETH community debates potential regulatory impact.
             """,
-            NEUTRAL,
-            BEARISH,
-            BEARISH,
-            id="Case 7: Regulatory news affecting specific assets",
+            [
+                AssetSentimentAnalysis(asset=ETH, sentiment=BEARISH),
+                AssetSentimentAnalysis(asset=XRP, sentiment=BEARISH),
+            ],
+            id="Regulatory news affecting specific assets",
         ),
         pytest.param(
             """
@@ -103,10 +109,11 @@ def ollama_analyzer() -> OllamaSentimentAnalyzer:
             with focus on Bitcoin and Ethereum. Traditional finance continues to
             embrace digital assets.
             """,
-            BULLISH,
-            BULLISH,
-            NEUTRAL,
-            id="Case 8: Institutional adoption favoring BTC and ETH",
+            [
+                AssetSentimentAnalysis(asset=BTC, sentiment=BULLISH),
+                AssetSentimentAnalysis(asset=ETH, sentiment=BULLISH),
+            ],
+            id="Institutional adoption favoring BTC and ETH",
         ),
         pytest.param(
             """
@@ -114,10 +121,11 @@ def ollama_analyzer() -> OllamaSentimentAnalyzer:
             Bitcoin's narrative as digital gold strengthens while altcoins
             face selling pressure.
             """,
-            BULLISH,
-            BEARISH,
-            BEARISH,
-            id="Case 9: Market uncertainty favoring BTC as safe haven",
+            [
+                AssetSentimentAnalysis(asset=BTC, sentiment=BULLISH),
+                AssetSentimentAnalysis(asset=ETH, sentiment=BEARISH),
+            ],
+            id="Market uncertainty favoring BTC as safe haven",
         ),
         pytest.param(
             """
@@ -125,10 +133,12 @@ def ollama_analyzer() -> OllamaSentimentAnalyzer:
             Bitcoin's dominance index declining as altcoins gain momentum.
             XRP leads altcoin recovery.
             """,
-            NEUTRAL,
-            BULLISH,
-            BULLISH,
-            id="Case 10: Altcoin season scenario",
+            [
+                AssetSentimentAnalysis(asset=BTC, sentiment=BEARISH),
+                AssetSentimentAnalysis(asset=ETH, sentiment=BULLISH),
+                AssetSentimentAnalysis(asset=XRP, sentiment=BULLISH),
+            ],
+            id=" Altcoin season scenario",
         ),
         pytest.param(
             """
@@ -136,20 +146,22 @@ def ollama_analyzer() -> OllamaSentimentAnalyzer:
             Trading volumes drop across all major cryptocurrencies amid
             growing concerns.
             """,
-            BEARISH,
-            BEARISH,
-            BEARISH,
-            id="Case 11: Exchange FUD affecting entire market",
+            [
+                AssetSentimentAnalysis(asset=BTC, sentiment=BEARISH),
+                AssetSentimentAnalysis(asset=ETH, sentiment=BEARISH),
+                AssetSentimentAnalysis(asset=XRP, sentiment=BEARISH),
+            ],
+            id=" Exchange FUD affecting entire market",
         ),
         pytest.param(
             """
             Ethereum gas fees hit record lows after successful network upgrade.
             Layer 2 solutions show promising adoption metrics.
             """,
-            NEUTRAL,
-            BULLISH,
-            NEUTRAL,
-            id="Case 12: ETH-specific technical improvement",
+            [
+                AssetSentimentAnalysis(asset=ETH, sentiment=BULLISH),
+            ],
+            id=" ETH-specific technical improvement",
         ),
         pytest.param(
             """
@@ -157,40 +169,42 @@ def ollama_analyzer() -> OllamaSentimentAnalyzer:
             Bitcoin mining operations forced to relocate. Market impact yet
             to be determined.
             """,
-            BEARISH,
-            NEUTRAL,
-            NEUTRAL,
-            id="Case 13: Regulatory crackdown primarily affecting BTC",
+            [
+                AssetSentimentAnalysis(asset=BTC, sentiment=BEARISH),
+                AssetSentimentAnalysis(asset=ETH, sentiment=BEARISH),
+                AssetSentimentAnalysis(asset=XRP, sentiment=BEARISH),
+            ],
+            id=" Regulatory crackdown primarily affecting BTC",
         ),
         pytest.param(
             """
-            XRP wins landmark court case against regulatory body.
+            XRP wins landmark court inst regulatory body.
             Legal clarity expected to boost institutional adoption of
             regulated cryptocurrencies.
             """,
-            NEUTRAL,
-            NEUTRAL,
-            BULLISH,
-            id="Case 14: XRP-specific positive legal development",
+            [
+                AssetSentimentAnalysis(asset=XRP, sentiment=BULLISH),
+            ],
+            id=" XRP-specific positive legal development",
         ),
         pytest.param(
             """
             Cryptocurrency market experiences flash crash as major stablecoin
             loses dollar peg. All major assets affected in the short term.
             """,
-            BEARISH,
-            BEARISH,
-            BEARISH,
-            id="Case 15: Systemic risk affecting all assets",
+            [
+                AssetSentimentAnalysis(asset=BTC, sentiment=BEARISH),
+                AssetSentimentAnalysis(asset=ETH, sentiment=BEARISH),
+                AssetSentimentAnalysis(asset=XRP, sentiment=BEARISH),
+            ],
+            id=" Systemic risk affecting all assets",
         ),
     ],
 )
 def test_ollama_analyzer(
     ollama_analyzer: OllamaSentimentAnalyzer,
     story: str,
-    expected_btc: SentimentSignal,
-    expected_eth: SentimentSignal,
-    expected_xrp: SentimentSignal,
+    expected_sentiments: list[AssetSentimentAnalysis],
 ):
     result = ollama_analyzer.analyze(
         NewsStory(
@@ -201,25 +215,22 @@ def test_ollama_analyzer(
             url="https://crypto.com/news/dummy-url",
         )
     )
+    sentiments = {s.asset: s.sentiment.value for s in result.asset_sentiments}
+    expected = {s.asset: s.sentiment.value for s in expected_sentiments}
 
-    if not (
-        (result.btc, result.eth, result.xrp)
-        == (expected_btc, expected_eth, expected_xrp),
-    ):
+    if sentiments != expected:
         pytest.fail(f"""
         Story: {story}
 
         BTC:
-            Result: {result.btc}
-            Expected: {expected_btc}
+            Result: {sentiments.get(Asset.BTC)}
+            Expected: {expected.get(Asset.BTC)}
 
         ETH:
-            Result: {result.eth}
-            Expected: {expected_eth}
+            Result: {sentiments.get(Asset.ETH)}
+            Expected: {expected.get(Asset.ETH)}
 
         XRP:
-            Result: {result.xrp}
-            Expected: {expected_xrp}
-
-        Reasoning: {result.reasoning}
+            Result: {sentiments.get(Asset.XRP)}
+            Expected: {expected.get(Asset.XRP)}
         """)
