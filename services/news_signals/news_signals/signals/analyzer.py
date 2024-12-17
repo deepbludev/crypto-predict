@@ -13,13 +13,13 @@ from domain.sentiment_analysis import (
 from domain.trades import Asset
 
 assets = ", ".join(a.value for a in Asset)
-prompt = f"""
+base_prompt = f"""
     You are an expert crypto financial analyst with deep knowledge of market dynamics and sentiment analysis.
     
     Analyze the following news story and determine its potential impact ONLY on these specific assets:
     {assets}
     
-    ⚠️ CRITICAL INSTRUCTION ⚠️
+    ⚠️ CRITICAL INSTRUCTION #1⚠️
     You MUST COMPLETELY IGNORE any assets not in the above list, even if they are explicitly mentioned in the news.
     If the news only talks about non-listed assets, you MUST return an empty array [].
     
@@ -28,16 +28,20 @@ prompt = f"""
     - If the news says "Bitcoin and Solana rise 20%" and only BTC is in the asset list → only include BTC
     - If the news mentions USD, EUR, or any non-listed crypto → ignore them completely
     
+    ⚠️ CRITICAL INSTRUCTION #2⚠️
     Possible sentiment signals: BULLISH, BEARISH
+    The sentiment signal must be either BULLISH or BEARISH, and not any other value.
+    No other sentiment signals are allowed.
     
     Response Rules:
     1. First, check if an asset is in the allowed list: {assets}
     2. If the asset is not in this exact list → ignore it completely
     3. Only for assets in the allowed list, analyze if the news impacts them
     4. Return [] if:
-       - The news only discusses non-listed assets
-       - The news has no clear impact on any listed assets
-       - You're unsure if the impact affects listed assets
+        - The news only discusses non-listed assets
+        - The news has no clear impact on any listed assets
+        - You're unsure if the impact affects listed assets
+    5. Check if the sentiment signal is either BULLISH or BEARISH and not any other value.
     
     For the relevant ALLOWED assets only, provide a sentiment based on:
     
@@ -81,11 +85,6 @@ prompt = f"""
     News: "Crypto exchange updates its UI design"
     []
     # Empty array because no clear impact on any allowed assets
-
-    News story to analyze:
-    {{news_story}}
-    
-    Response (valid JSON array only):
 """  # noqa
 
 
@@ -100,7 +99,17 @@ class SentimentAnalyzer:
     def __init__(self, llm_model: LLMModel, llm: LLM):
         self.llm = llm
         self.llm_model = llm_model
-        self.prompt_template = PromptTemplate(template=dedent(prompt).strip())
+        self.base_prompt = base_prompt
+        self.raw_prompt = dedent(f"""
+            {self.base_prompt}
+            
+            News story to analyze:
+            {{news_story}}
+            
+            Response (valid JSON array only):
+        """).strip()  # noqa
+
+        self.prompt_template = PromptTemplate(template=self.raw_prompt)
 
     def analyze(self, story: NewsStory) -> NewsStorySentimentAnalysis:
         """

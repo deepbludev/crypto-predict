@@ -328,9 +328,11 @@ dependencies = [
     { name = "pyarrow" },
     { name = "pydantic" },
     { name = "quixstreams" },
+    { name = "rarfile" },
     { name = "requests" },
     { name = "ta" },
     { name = "ta-lib" },
+    { name = "tqdm" },
     { name = "trades" },
     { name = "websockets" },
 ]
@@ -359,9 +361,11 @@ requires-dist = [
     { name = "pyarrow", specifier = ">=18.1.0" },
     { name = "pydantic", specifier = ">=2.9.2" },
     { name = "quixstreams", specifier = ">=3.3.0" },
+    { name = "rarfile", specifier = ">=4.2" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "ta", editable = "services/ta" },
     { name = "ta-lib", specifier = ">=0.5.1" },
+    { name = "tqdm", specifier = ">=4.67.1" },
     { name = "trades", editable = "services/trades" },
     { name = "websockets", specifier = ">=14.1" },
 ]
@@ -1722,6 +1726,15 @@ dependencies = [
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1f/58/53d33ce4fe3ea6f4f0d1853a8ad0fe5aead73cc62fcba7b80bf126be008d/quixstreams-3.4.0-py3-none-any.whl", hash = "sha256:177b52a18bfccd4a789643bfbc41fd8c60898c3f9872062e213a9b10d151e040", size = 235446 },
+]
+
+[[package]]
+name = "rarfile"
+version = "4.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/26/3f/3118a797444e7e30e784921c4bfafb6500fb288a0c84cb8c32ed15853c16/rarfile-4.2.tar.gz", hash = "sha256:8e1c8e72d0845ad2b32a47ab11a719bc2e41165ec101fd4d3fe9e92aa3f469ef", size = 153476 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/62/fc/ab37559419ca36dd8dd317c3a98395ed4dcee2beeb28bf6059b972906727/rarfile-4.2-py3-none-any.whl", hash = "sha256:8757e1e3757e32962e229cab2432efc1f15f210823cc96ccba0f6a39d17370c9", size = 29052 },
 ]
 
 [[package]]

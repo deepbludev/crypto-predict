@@ -26,3 +26,13 @@ class NewsStory(Schema):
     published_at: str
     url: str
     timestamp: int = Field(default_factory=now_timestamp)
+
+    @classmethod
+    def dummy(cls, title: str) -> NewsStory:
+        return cls(
+            outlet=NewsOutlet.CRYPTOPANIC,
+            title=title,
+            source="dummy",
+            published_at="dummy",
+            url="dummy",
+        )

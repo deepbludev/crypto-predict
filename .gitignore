@@ -1,3 +1,7 @@
+# ETL data files
+**/cryptopanic_news.csv
+**/*_instruction_dataset.jsonl
+
 # Python-generated files
 __pycache__/
 *.py[oc]
