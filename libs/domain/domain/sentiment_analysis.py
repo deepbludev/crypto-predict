@@ -39,32 +39,11 @@ class AssetSentimentAnalysisDetails(Schema):
     )
 
 
-class AssetSentimentAnalysis(AssetSentimentAnalysisDetails):
-    llm_model: LLMModel
-    story: str
-    timestamp: int = Field(default_factory=now_timestamp)
-
-
 class NewsStorySentimentAnalysis(Schema):
     story: str
     timestamp: int = Field(default_factory=now_timestamp)
     llm_model: LLMModel
     asset_sentiments: list[AssetSentimentAnalysisDetails]
-
-    def unwind(self) -> list[AssetSentimentAnalysis]:
-        """
-        Unwinds the sentiment analysis into a list of individual
-        AssetSentimentAnalysis for each asset.
-        """
-        return [
-            AssetSentimentAnalysis(
-                **sentiment.unpack(),
-                llm_model=self.llm_model,
-                story=self.story,
-                timestamp=self.timestamp,
-            )
-            for sentiment in self.asset_sentiments
-        ]
 
     def encoded(self) -> dict[str, Any]:
         """
