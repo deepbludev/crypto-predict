@@ -1,5 +1,6 @@
 from enum import Enum
 from textwrap import dedent
+from typing import Any
 
 from pydantic import Field
 
@@ -51,6 +52,10 @@ class NewsStorySentimentAnalysis(Schema):
     asset_sentiments: list[AssetSentimentAnalysisDetails]
 
     def unwind(self) -> list[AssetSentimentAnalysis]:
+        """
+        Unwinds the sentiment analysis into a list of individual
+        AssetSentimentAnalysis for each asset.
+        """
         return [
             AssetSentimentAnalysis(
                 **sentiment.unpack(),
@@ -60,3 +65,35 @@ class NewsStorySentimentAnalysis(Schema):
             )
             for sentiment in self.asset_sentiments
         ]
+
+    def encoded(self) -> dict[str, Any]:
+        """
+        Encodes the sentiment analysis into a feature vector format
+        that can be used for training a model.
+
+        Returns:
+            A dictionary with the following keys:
+            - story: the news story
+            - timestamp: the timestamp of the news story
+            - llm_model: the LLM model used to analyze the news story
+            - asset_sentiments: an unpacked list of AssetSentimentAnalysisDetails,
+            with the asset as the key and the sentiment as the value.
+
+            The sentiment is encoded as 1 for BULLISH and -1 for BEARISH.
+            Example:
+            ```python
+            {
+                "story": "SEC approves Bitcoin ETF. ETH loses credibility.",
+                "timestamp": 1718534400,
+                "llm_model": "llama3.2-3b",
+                "BTC": 1,
+                "ETH": -1,
+            }
+            ```
+        """
+        return {
+            "story": self.story,
+            "timestamp": self.timestamp,
+            "llm_model": self.llm_model.value,
+            **{a.asset.value: a.sentiment.encoded() for a in self.asset_sentiments},
+        }
