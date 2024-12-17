@@ -23,6 +23,14 @@ def ollama_analyzer() -> OllamaSentimentAnalyzer:
     [
         pytest.param(
             """
+            Decentryk doing some laser engraving testing for a new luxury brand
+            customer for our new NFT protocol for Physical…
+            """,
+            [],
+            id="No clear impact",
+        ),
+        pytest.param(
+            """
             SEC approves Bitcoin ETF. Unprecedented move to boost crypto adoption
             for all cryptos.
             """,
@@ -174,7 +182,7 @@ def test_ollama_analyzer(
             url="https://crypto.com/news/dummy-url",
         )
     )
-    sentiments = {s.asset: s.sentiment.value for s in result.asset_sentiments}
+    sentiments = {s.asset: s.sentiment for s in result.asset_sentiments}
     expected = {asset: sentiment.value for asset, sentiment in expected_sentiments}
 
     if sentiments != expected:
@@ -192,4 +200,8 @@ def test_ollama_analyzer(
         XRP:
             Result: {sentiments.get(Asset.XRP)}
             Expected: {expected.get(Asset.XRP)}
+
+        All:
+            Result: {sentiments}
+            Expected: {expected}
         """)

@@ -2,11 +2,10 @@ from enum import Enum
 from textwrap import dedent
 from typing import Any
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from domain.core import Schema, now_timestamp
 from domain.llm import LLMModel
-from domain.trades import Asset
 
 
 class SentimentSignal(str, Enum):
@@ -20,16 +19,21 @@ class SentimentSignal(str, Enum):
             case SentimentSignal.BEARISH:
                 return -1
 
-
-assets = [a.value for a in Asset]
+    @classmethod
+    def values(cls) -> list[str]:
+        return [s.value for s in cls]
 
 
 class AssetSentimentAnalysisDetails(Schema):
+    """
+    Represents the sentiment analysis for a single asset.
+    """
+
     asset: str = Field(
         description=f"The asset to analyze the sentiment for. "
-        f"Must be one of the assets in the asset list: {assets}"
+        f"Must be one of the assets in the asset list: {SentimentSignal.values()}"
     )
-    sentiment: SentimentSignal = Field(
+    sentiment: str = Field(
         description=dedent("""
             The sentiment signal for the asset, based on the impact
 
@@ -38,12 +42,32 @@ class AssetSentimentAnalysisDetails(Schema):
         """).strip(),  # noqa: E501
     )
 
+    def encoded(self) -> dict[str, Any]:
+        return {
+            "asset": self.asset,
+            "sentiment": SentimentSignal(self.sentiment).encoded(),
+        }
+
 
 class NewsStorySentimentAnalysis(Schema):
     story: str
     timestamp: int = Field(default_factory=now_timestamp)
     llm_model: LLMModel
     asset_sentiments: list[AssetSentimentAnalysisDetails]
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_sentiments_and_remove_invalid(
+        cls, data: dict[str, Any]
+    ) -> dict[str, Any]:
+        """
+        Validates the sentiments and removes invalid ones.
+        """
+        asset_sentiments = data.get("asset_sentiments", [])
+        data["asset_sentiments"] = [
+            a for a in asset_sentiments if a.sentiment in SentimentSignal
+        ]
+        return data
 
     def encoded(self) -> dict[str, Any]:
         """
@@ -74,5 +98,8 @@ class NewsStorySentimentAnalysis(Schema):
             "story": self.story,
             "timestamp": self.timestamp,
             "llm_model": self.llm_model.value,
-            **{a.asset: a.sentiment.encoded() for a in self.asset_sentiments},
+            **{
+                a.asset: SentimentSignal(a.sentiment).encoded()
+                for a in self.asset_sentiments
+            },
         }

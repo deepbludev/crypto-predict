@@ -16,7 +16,7 @@ def get_sentiment_analyzer() -> SentimentAnalyzer:
     match provider:
         case LLMProvider.OLLAMA:
             logger.info(
-                f"Using Ollama: model={model}, base_url={settings.ollama_base_url}",
+                f"Using Ollama: model={model.value}, base_url={settings.ollama_base_url}"  # noqa
             )
             return OllamaSentimentAnalyzer(
                 model,
@@ -24,7 +24,7 @@ def get_sentiment_analyzer() -> SentimentAnalyzer:
             )
 
         case LLMProvider.ANTHROPIC:
-            logger.info(f"Using Anthropic: model={model}")
+            logger.info(f"Using Anthropic: model={model.value}")
             return AnthropicSentimentAnalyzer(
                 model,
                 api_key=settings.anthropic_api_key,

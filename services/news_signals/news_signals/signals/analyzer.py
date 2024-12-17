@@ -23,15 +23,10 @@ base_prompt = f"""
     You MUST COMPLETELY IGNORE any assets not in the above list, even if they are explicitly mentioned in the news.
     If the news only talks about non-listed assets, you MUST return an empty array [].
     
-    Example:
-    - If the news says "Solana rises 20%" but SOL is not in the asset list → return []
-    - If the news says "Bitcoin and Solana rise 20%" and only BTC is in the asset list → only include BTC
-    - If the news mentions USD, EUR, or any non-listed crypto → ignore them completely
-    
     ⚠️ CRITICAL INSTRUCTION #2⚠️
     Possible sentiment signals: BULLISH, BEARISH
-    The sentiment signal must be either BULLISH or BEARISH, and not any other value.
-    No other sentiment signals are allowed.
+    The sentiment signal must be either **"BULLISH"** or **"BEARISH"**, and not any other value.
+    **Do not leave the "sentiment" field empty or include any other text.**
     
     Response Rules:
     1. First, check if an asset is in the allowed list: {assets}
@@ -41,7 +36,7 @@ base_prompt = f"""
         - The news only discusses non-listed assets
         - The news has no clear impact on any listed assets
         - You're unsure if the impact affects listed assets
-    5. Check if the sentiment signal is either BULLISH or BEARISH and not any other value.
+    5. **Ensure that the "sentiment" field is either "BULLISH" or "BEARISH" and not any other value. Do not leave it empty.**
     
     For the relevant ALLOWED assets only, provide a sentiment based on:
     
@@ -85,14 +80,12 @@ base_prompt = f"""
     News: "Crypto exchange updates its UI design"
     []
     # Empty array because no clear impact on any allowed assets
+
+    **Important:** Always strictly follow the response format and rules above. If you deviate from these instructions, the response will be considered invalid.
 """  # noqa
 
 
 AssetSentimentAnalysisList = pydantic.RootModel[list[AssetSentimentAnalysisDetails]]
-"""
-A list of AssetSentimentAnalysis objects.
-Used as the structured output type for the LLM.
-"""
 
 
 class SentimentAnalyzer:
@@ -104,7 +97,7 @@ class SentimentAnalyzer:
             {self.base_prompt}
             
             News story to analyze:
-            {{news_story}}
+            "{{news_story}}"
             
             Response (valid JSON array only):
         """).strip()  # noqa
