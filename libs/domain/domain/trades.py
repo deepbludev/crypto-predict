@@ -44,6 +44,19 @@ class Asset(str, Enum):
     BTC = "BTC"
     ETH = "ETH"
     XRP = "XRP"
+    XLM = "XLM"
+    BNB = "BNB"
+    SOL = "SOL"
+    DOGE = "DOGE"
+    ADA = "ADA"
+    LTC = "LTC"
+    BCH = "BCH"
+    DOT = "DOT"
+    XMR = "XMR"
+    EOS = "EOS"
+    XEM = "XEM"
+    ZEC = "ZEC"
+    ETC = "ETC"
 
 
 class Symbol(str, Enum):

@@ -1,7 +1,6 @@
 import quixstreams as qs
 from loguru import logger
 
-from domain.ta import TechnicalAnalysis
 from features.core.settings import features_settings
 from features.sinks.hopsworks import HopsworksFeatureStoreSink
 
@@ -9,7 +8,7 @@ from features.sinks.hopsworks import HopsworksFeatureStoreSink
 def run_stream(stream_app: qs.Application):
     """Builds the stream and runs it."""
 
-    generate_features_from_candles_and_load_to_feature_store(stream_app)
+    stream_features_and_load_to_feature_store(stream_app)
     try:
         logger.info("Starting the features stream")
         stream_app.run()
@@ -19,19 +18,17 @@ def run_stream(stream_app: qs.Application):
         logger.info("Stream application stopped")
 
 
-def generate_features_from_candles_and_load_to_feature_store(
+def stream_features_and_load_to_feature_store(
     stream_app: qs.Application,
 ):
     """
-    Generates features from candles and loads them to the feature store.
+    Generates features from the input topic and loads them to the feature store.
     """
-    ta_topic = features_settings().input_topic
+    input_topic = features_settings().input_topic
     fs = HopsworksFeatureStoreSink().connect()
     (
-        stream_app.dataframe(stream_app.topic(ta_topic, value_deserializer="json"))
-        .apply(TechnicalAnalysis.parse)
-        .update(lambda ta: logger.info(f"Loading feature: {ta.key()}"))
-        .apply(TechnicalAnalysis.serialize)
+        stream_app.dataframe(stream_app.topic(input_topic, value_deserializer="json"))
+        .update(lambda f: logger.info(f"[{input_topic}] Loading feature: {f}"))
         .sink(fs)
     )
 

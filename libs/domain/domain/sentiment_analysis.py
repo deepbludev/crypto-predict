@@ -25,7 +25,7 @@ assets = [a.value for a in Asset]
 
 
 class AssetSentimentAnalysisDetails(Schema):
-    asset: Asset = Field(
+    asset: str = Field(
         description=f"The asset to analyze the sentiment for. "
         f"Must be one of the assets in the asset list: {assets}"
     )
@@ -95,5 +95,5 @@ class NewsStorySentimentAnalysis(Schema):
             "story": self.story,
             "timestamp": self.timestamp,
             "llm_model": self.llm_model.value,
-            **{a.asset.value: a.sentiment.encoded() for a in self.asset_sentiments},
+            **{a.asset: a.sentiment.encoded() for a in self.asset_sentiments},
         }

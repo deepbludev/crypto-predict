@@ -16,24 +16,31 @@ assets = ", ".join(a.value for a in Asset)
 prompt = f"""
     You are an expert crypto financial analyst with deep knowledge of market dynamics and sentiment analysis.
     
-    Analyze the following news story and determine its potential impact on crypto asset prices.
-    Focus on both direct mentions and indirect implications for each asset.
+    Analyze the following news story and determine its potential impact ONLY on these specific assets:
+    {assets}
     
-    Available assets to consider in the analysis: {assets}
+    ⚠️ CRITICAL INSTRUCTION ⚠️
+    You MUST COMPLETELY IGNORE any assets not in the above list, even if they are explicitly mentioned in the news.
+    If the news only talks about non-listed assets, you MUST return an empty array [].
+    
+    Example:
+    - If the news says "Solana rises 20%" but SOL is not in the asset list → return []
+    - If the news says "Bitcoin and Solana rise 20%" and only BTC is in the asset list → only include BTC
+    - If the news mentions USD, EUR, or any non-listed crypto → ignore them completely
+    
     Possible sentiment signals: BULLISH, BEARISH
     
-    CRITICAL: You must ONLY include assets from the provided list of available assets.
-    Any other assets, even if mentioned in the news, must be ignored.
+    Response Rules:
+    1. First, check if an asset is in the allowed list: {assets}
+    2. If the asset is not in this exact list → ignore it completely
+    3. Only for assets in the allowed list, analyze if the news impacts them
+    4. Return [] if:
+       - The news only discusses non-listed assets
+       - The news has no clear impact on any listed assets
+       - You're unsure if the impact affects listed assets
     
-    Important Response Guidelines:
-    - Only include assets that are in the available assets list - no exceptions
-    - Only include assets in the response that are DIRECTLY or INDIRECTLY affected by the news
-    - If the news has no clear impact on an asset (neutral), DO NOT include it in the response
-    - If the news has no relevant impact on any assets, return an empty list []
-    - The asset MUST be exactly as written in the available assets list, no variations allowed
+    For the relevant ALLOWED assets only, provide a sentiment based on:
     
-    For the relevant assets, provide a sentiment signal based on these criteria:
-
     BULLISH when:
     - The news suggests positive price movement
     - There are strong positive catalysts
@@ -44,53 +51,37 @@ prompt = f"""
     - There are concerning developments or risks
     - The asset might be negatively impacted by market conditions
     
-    When analyzing the news, consider:
-    - Direct mentions and explicit effects on specific assets
-    - Indirect implications and market dynamics
-    - Cross-asset correlations and ecosystem effects
-    - Only include assets where you can justify a clear BULLISH or BEARISH sentiment
-    
-    IMPORTANT: Your response must be a valid JSON array containing objects with exactly these fields:
-    [
-        {{"asset": string, "sentiment": string}}
-    ]
-    
-    Where:
+    Response Format:
+    - Must be a valid JSON array: [{{"asset": string, "sentiment": string}}]
     - "asset" must be EXACTLY one of: {assets}
     - "sentiment" must be either: "BULLISH" or "BEARISH"
     
-    Examples of valid responses:
+    Examples of CORRECT responses for different scenarios:
 
-    1. News: "Goldman Sachs wants to invest in Bitcoin and Ethereum, but not in XRP."
-    [
-        {{"asset": "BTC", "sentiment": "BULLISH"}},
-        {{"asset": "ETH", "sentiment": "BULLISH"}},
-        {{"asset": "XRP", "sentiment": "BEARISH"}}
-    ]
+    News: "Solana rises 20%"
+    []
+    # Empty array because SOL is not in allowed assets
 
-    2. News: "Bitcoin mining difficulty increases by 10%"
+    News: "USD/BTC pair shows strength"
     [
         {{"asset": "BTC", "sentiment": "BULLISH"}}
     ]
-    
-    3. News: "Crypto exchange updates its UI design"
+    # Only BTC is included because USD is not in allowed list
+
+    News: "Solana, Cardano, and Dogecoin show massive gains"
     []
+    # Empty array since none of the mentioned assets are in allowed list
 
-    Examples of INVALID responses:
-    News: "USD and EUR rise against major currencies, while Bitcoin falls"
+    News: "Bitcoin drops 5% while Solana surges"
     [
-        {{"asset": "USD", "sentiment": "BULLISH"}},  # WRONG - USD is not in available assets
-        {{"asset": "EUR", "sentiment": "BULLISH"}},  # WRONG - EUR is not in available assets
+        {{"asset": "BTC", "sentiment": "BEARISH"}}
     ]
+    # Only BTC included, SOL ignored as it's not in allowed list
 
-    News: "Solana and Cardano show strong growth, while Dogecoin struggles"
-    [
-        {{"asset": "SOL", "sentiment": "BULLISH"}},  # WRONG - SOL is not in available assets
-        {{"asset": "ADA", "sentiment": "BULLISH"}},  # WRONG - ADA is not in available assets
-        {{"asset": "DOGE", "sentiment": "BEARISH"}}  # WRONG - DOGE is not in available assets
-    ]
-    # Correct response would be [] if none of the available assets are affected
-    
+    News: "Crypto exchange updates its UI design"
+    []
+    # Empty array because no clear impact on any allowed assets
+
     News story to analyze:
     {{news_story}}
     
@@ -124,8 +115,9 @@ class SentimentAnalyzer:
             prompt=self.prompt_template,
             news_story=story.title,
         )
+
         return NewsStorySentimentAnalysis(
-            asset_sentiments=result.root,
+            asset_sentiments=[a for a in result.root if a.asset in Asset],
             llm_model=self.llm_model,
             story=story.title,
         )
