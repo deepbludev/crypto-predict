@@ -12,7 +12,7 @@ class SentimentSignal(str, Enum):
     BULLISH = "BULLISH"
     BEARISH = "BEARISH"
 
-    def to_int(self) -> int:
+    def encoded(self) -> int:
         match self:
             case SentimentSignal.BULLISH:
                 return 1

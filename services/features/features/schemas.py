@@ -26,5 +26,5 @@ class NewsStorySentimentAnalysisFeature(Feature, AssetSentimentAnalysis):
         """
         return cls(
             **analysis.unpack(),
-            sentiment=analysis.sentiment.to_int(),
+            sentiment=analysis.sentiment.encoded(),
         )
