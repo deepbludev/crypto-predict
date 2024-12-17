@@ -62,6 +62,12 @@ else
 	@echo "Invalid service: $(svc)"
 endif
 
+# ----------------------------------------
+# ETLs
+# ----------------------------------------
+etl:
+	uv run python -m services.$(svc).etl.$(name)
+
 
 # ----------------------------------------
 # Development
