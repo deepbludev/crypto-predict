@@ -1,8 +1,10 @@
 from datetime import datetime, timezone
+from typing import Any, cast
 
 import hopsworks
 import pandas as pd
 from hsfs.feature_store import FeatureStore
+from loguru import logger
 from quixstreams.sinks.base import BatchingSink, SinkBackpressureError, SinkBatch
 
 from features.core.settings import features_settings
@@ -46,12 +48,16 @@ class HopsworksFeatureStoreSink(BatchingSink):
             event_time=self.fg_event_time,
             online_enabled=True,
         )
-        # set the materialization interval
-        assert self.fg.materialization_job
-        self.fg.materialization_job.schedule(
-            cron_expression=self.fg_materialization_job_schedule,
-            start_time=datetime.now(tz=timezone.utc),
-        )
+        try:
+            # set the materialization job interval
+            if job := cast(Any, self.fg.materialization_job):
+                job.schedule(
+                    cron_expression=self.fg_materialization_job_schedule,
+                    start_time=datetime.now(tz=timezone.utc),
+                )
+        except Exception as e:
+            logger.error(f"Error scheduling matjob: {e}")
+
         return self
 
     def write(self, batch: SinkBatch):

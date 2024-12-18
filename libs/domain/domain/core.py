@@ -1,3 +1,4 @@
+from datetime import datetime
 from time import time
 from typing import Any, Self
 
@@ -33,3 +34,8 @@ class Schema(BaseModel):
 def now_timestamp() -> int:
     """Get the current timestamp in milliseconds."""
     return int(time() * 1000)
+
+
+def iso_to_timestamp(iso_datetime: str) -> int:
+    """Convert an ISO 8601 datetime string to a timestamp in milliseconds."""
+    return int(datetime.fromisoformat(iso_datetime).timestamp() * 1000)

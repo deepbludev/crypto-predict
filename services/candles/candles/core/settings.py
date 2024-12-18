@@ -3,7 +3,7 @@ from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from domain.candles import CandleTimeframe, EmissionMode
-from domain.trades import TradeIngestionMode
+from domain.trades import TradesIngestionMode
 
 
 class Settings(BaseSettings):
@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     output_topic: str = "candles"
     timeframe: CandleTimeframe = CandleTimeframe.tf_1m
     emission_mode: EmissionMode = EmissionMode.LIVE
-    trade_ingestion_mode: TradeIngestionMode = TradeIngestionMode.LIVE
+    trade_ingestion_mode: TradesIngestionMode = TradesIngestionMode.LIVE
 
 
 @lru_cache()

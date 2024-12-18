@@ -2,7 +2,7 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from domain.trades import TradeIngestionMode
+from domain.trades import TradesIngestionMode
 
 
 class Settings(BaseSettings):
@@ -17,14 +17,14 @@ class Settings(BaseSettings):
     broker_address: str = "localhost:19092"
     consumer_group: str = "cg_features"
     input_topic: str = "ta"
-    trade_ingestion_mode: TradeIngestionMode = TradeIngestionMode.LIVE
+    trade_ingestion_mode: TradesIngestionMode = TradesIngestionMode.LIVE
 
     # feature group settings
     fg_name: str = "technical_analysis"
     fg_version: int = 1
     fg_pk: list[str] = ["symbol", "timeframe"]
     fg_event_time: str = "timestamp"
-    fg_materialization_job_schedule: str = "0 0/15 * ? * * *"
+    fg_materialization_job_schedule: str = "0 0/15 * * * ?"
 
     # secrets
     hopsworks_api_key: str = "hopsworks_api_key"

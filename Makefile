@@ -16,16 +16,17 @@ port_for_service = $(word 2,$(subst =, ,$(filter $(1)=%,$(PORTS))))
 # - indicators
 # - indicators_historical
 # - sentiment_signals
+# - sentiment_signals_historical
 #
 # Build a service in a cluster
 # Usage: make build cluster=cryptopredict-messagebus svc=trades
 # Available services: $(SERVICES)
 
 build:
-	docker compose -f .docker/$(cluster).compose.yaml up --build -d $(svc)
+	docker compose -f .docker/$(cluster).compose.yaml up $(svc) --build -d 
 
 up:
-	docker compose -f .docker/$(cluster).compose.yaml up -d $(svc)
+	docker compose -f .docker/$(cluster).compose.yaml up $(svc) -d
 
 down:
 	docker compose -f .docker/$(cluster).compose.yaml down $(svc)
@@ -36,7 +37,7 @@ stop:
 backfill:
 	$(eval NOW := $(shell date +%s))
 	@echo "Starting backfill with Job ID: $(NOW)"
-	TRADES_BACKFILL_JOB_ID=$(NOW) docker compose -f docker-compose.historical.yaml up -d $(if $(build),--build,) 
+	BACKFILL_JOB_ID=$(NOW) docker compose -f .docker/$(cluster)_historical.compose.yaml up -d $(if $(build),--build,) 
 
 clean-backfill:
 	@echo "Cleaning historical topics..."

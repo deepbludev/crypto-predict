@@ -1,6 +1,7 @@
 # Docker Compose file for the Sentiment Signals Feature Pipeline
+# in historical mode
 
-name: cryptopredict-sentiment_signals
+name: cryptopredict-sentiment_signals_historical
 
 networks:
   cryptopredict-messagebus_cryptopredict-network:
@@ -20,16 +21,22 @@ services:
         PORT: 8005
     command: fastapi dev app/services/news/news --port 8005
     ports:
-      - 8005:8005
+      - 8205:8005
     environment:
       - NEWS_BROKER_ADDRESS=redpanda:9092
+      - NEWS_NEWS_INGESTION_MODE=HISTORICAL
+      - NEWS_NEWS_TOPIC=news_historical_${BACKFILL_JOB_ID}
+      - NEWS_CONSUMER_GROUP=cg_news_historical_${BACKFILL_JOB_ID}
+      - NEWS_CRYPTOPANIC_HISTORICAL_NEWS_FILEPATH=./app/services/news_signals/etl/data/cryptopanic_news.csv
+
     env_file:
       - ../services/news/.env
-    restart: always
+    restart: on-failure
     networks:
       - cryptopredict-messagebus_cryptopredict-network
     volumes:
-      - ../state:/app/state
+      - ../services/news_signals/etl/data:/app/services/news_signals/etl/data
+    
 
   # ----------------------------------------
   # --- News Signals service
@@ -48,15 +55,17 @@ services:
     environment:
       - NEWS_SIGNALS_BROKER_ADDRESS=redpanda:9092
       - NEWS_SIGNALS_OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - NEWS_SIGNALS_INPUT_TOPIC=news_historical_${BACKFILL_JOB_ID}
+      - NEWS_SIGNALS_OUTPUT_TOPIC=news_signals_historical_${BACKFILL_JOB_ID}
+      - NEWS_SIGNALS_CONSUMER_GROUP=cg_news_signals_historical_${BACKFILL_JOB_ID}
     env_file:
       - ../services/news_signals/.env
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    restart: always
+    restart: on-failure
     networks:
       - cryptopredict-messagebus_cryptopredict-network
-    volumes:
-      - ../state:/app/state
+    
 
   # ----------------------------------------
   # --- Features service
@@ -74,17 +83,16 @@ services:
       - 8104:8004
     environment:
       - FEATURES_BROKER_ADDRESS=redpanda:9092
-      - FEATURES_CONSUMER_GROUP="cg_features_news_signals"
-      - FEATURES_INPUT_TOPIC="news_signals"
-      - FEATURES_FG_NAME="news_signals"
+      - FEATURES_TRADE_INGESTION_MODE=HISTORICAL
+      - FEATURES_CONSUMER_GROUP=cg_features_news_signals_${BACKFILL_JOB_ID}
+      - FEATURES_INPUT_TOPIC=news_signals_historical_${BACKFILL_JOB_ID}
+      - FEATURES_FG_NAME=news_signals
       - FEATURES_FG_VERSION=1
-      - FEATURES_FG_PK=["llm_name"]
-      - FEATURES_FG_EVENT_TIME="timestamp"
+      - FEATURES_FG_PK=["asset","llm_name"] 
+      - FEATURES_FG_EVENT_TIME=timestamp
       - FEATURES_FG_MATERIALIZATION_JOB_SCHEDULE="0 0/15 * ? * * *"
     env_file:
       - ../services/features/.env
-    restart: always
+    restart: on-failure
     networks:
       - cryptopredict-messagebus_cryptopredict-network
-    volumes:
-     - ../state:/app/state

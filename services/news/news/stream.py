@@ -3,7 +3,7 @@ from loguru import logger
 
 from domain.news import NewsStory
 from news.core.settings import news_settings
-from news.outlets.cryptopanic import CryptoPanicOutlet
+from news.outlets import get_news_outlet_source
 
 
 def run_stream(stream_app: qs.Application):
@@ -22,7 +22,7 @@ def run_stream(stream_app: qs.Application):
 
 def stream_latest_news_from_cryptopanic(stream_app: qs.Application):
     news_topic = news_settings().news_topic
-    cryptopanic_outlet = CryptoPanicOutlet()
+    cryptopanic_outlet = get_news_outlet_source()
     (
         stream_app.dataframe(source=cryptopanic_outlet)
         .apply(NewsStory.parse)

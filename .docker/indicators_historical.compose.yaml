@@ -26,7 +26,7 @@ services:
       - TRADES_BROKER_ADDRESS=redpanda:9092
       - TRADES_KRAKEN_CONSUME_LIVE_TRADES=false
       - TRADES_KRAKEN_BACKFILL_TRADES_SINCE=2024-12-01
-      - TRADES_BACKFILL_JOB_ID=${TRADES_BACKFILL_JOB_ID}
+      - TRADES_BACKFILL_JOB_ID=${BACKFILL_JOB_ID}
     env_file:
       - ../services/trades/.env
     restart: on-failure
@@ -51,9 +51,9 @@ services:
       - CANDLES_BROKER_ADDRESS=redpanda:9092
       - CANDLES_EMISSION_MODE=FULL
       - CANDLES_TRADE_INGESTION_MODE=HISTORICAL
-      - CANDLES_INPUT_TOPIC=trades_historical_${TRADES_BACKFILL_JOB_ID}
-      - CANDLES_OUTPUT_TOPIC=candles_historical_${TRADES_BACKFILL_JOB_ID}
-      - CANDLES_CONSUMER_GROUP=cg_candles_historical_${TRADES_BACKFILL_JOB_ID}
+      - CANDLES_INPUT_TOPIC=trades_historical_${BACKFILL_JOB_ID}
+      - CANDLES_OUTPUT_TOPIC=candles_historical_${BACKFILL_JOB_ID}
+      - CANDLES_CONSUMER_GROUP=cg_candles_historical_${BACKFILL_JOB_ID}
     env_file:
       - ../services/candles/.env
     restart: on-failure
@@ -77,9 +77,9 @@ services:
     environment:
       - TA_BROKER_ADDRESS=redpanda:9092
       - TA_TRADE_INGESTION_MODE=HISTORICAL
-      - TA_INPUT_TOPIC=candles_historical_${TRADES_BACKFILL_JOB_ID}
-      - TA_OUTPUT_TOPIC=ta_historical_${TRADES_BACKFILL_JOB_ID}
-      - TA_CONSUMER_GROUP=cg_ta_historical_${TRADES_BACKFILL_JOB_ID}
+      - TA_INPUT_TOPIC=candles_historical_${BACKFILL_JOB_ID}
+      - TA_OUTPUT_TOPIC=ta_historical_${BACKFILL_JOB_ID}
+      - TA_CONSUMER_GROUP=cg_ta_historical_${BACKFILL_JOB_ID}
     env_file:
       - ../services/ta/.env
     restart: on-failure
@@ -103,9 +103,14 @@ services:
     environment:
       - FEATURES_BROKER_ADDRESS=redpanda:9092
       - FEATURES_TRADE_INGESTION_MODE=HISTORICAL
-      - FEATURES_INPUT_TOPIC=ta_historical_${TRADES_BACKFILL_JOB_ID}
-      - FEATURES_OUTPUT_TOPIC=features_historical_${TRADES_BACKFILL_JOB_ID}
-      - FEATURES_CONSUMER_GROUP=cg_features_historical_${TRADES_BACKFILL_JOB_ID}
+      - FEATURES_INPUT_TOPIC=ta_historical_${BACKFILL_JOB_ID}
+      - FEATURES_OUTPUT_TOPIC=features_historical_${BACKFILL_JOB_ID}
+      - FEATURES_CONSUMER_GROUP=cg_features_historical_${BACKFILL_JOB_ID}
+      - FEATURES_FG_NAME="ta"
+      - FEATURES_FG_VERSION="1"
+      - FEATURES_FG_PK=["symbol", "timeframe"]
+      - FEATURES_FG_EVENT_TIME="timestamp"
+      - FEATURES_FG_MATERIALIZATION_JOB_SCHEDULE="0 0/15 * ? * * *"
     env_file:
       - ../services/features/.env
     restart: on-failure
