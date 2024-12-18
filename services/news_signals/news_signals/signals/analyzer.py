@@ -98,8 +98,10 @@ class SentimentAnalyzer:
             sentiments = [AssetSentiment(**s) for s in json.loads(response.text)]
         except (ValidationError, json.JSONDecodeError, KeyError, TypeError) as e:
             # Handle invalid responses
-            logger.error(f"[{self.llm_name}] Invalid response:{e}")
-            logger.error(response.text)
+            logger.error(
+                f"[{self.llm_name.value}] Invalid response: {e}. "
+                f"Response: {response.text}"
+            )
             sentiments = []
 
         return NewsStorySentimentAnalysis(

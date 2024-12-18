@@ -1,6 +1,6 @@
 from enum import Enum
 from textwrap import dedent
-from typing import Any
+from typing import Any, Iterable, Literal, Self
 
 from pydantic import Field, model_validator
 
@@ -8,16 +8,18 @@ from domain.core import Schema, now_timestamp
 from domain.llm import LLMName
 from domain.trades import Asset
 
+type SentimentSignal = Literal[1, -1]
 
-class SentimentSignal(str, Enum):
+
+class Sentiment(str, Enum):
     BULLISH = "BULLISH"
     BEARISH = "BEARISH"
 
-    def encoded(self) -> int:
+    def encoded(self) -> SentimentSignal:
         match self:
-            case SentimentSignal.BULLISH:
+            case Sentiment.BULLISH:
                 return 1
-            case SentimentSignal.BEARISH:
+            case Sentiment.BEARISH:
                 return -1
 
     @classmethod
@@ -46,7 +48,7 @@ class AssetSentiment(Schema):
     def encoded(self) -> dict[str, Any]:
         return {
             "asset": self.asset,
-            "sentiment": SentimentSignal(self.sentiment).encoded(),
+            "sentiment": Sentiment(self.sentiment).encoded(),
         }
 
 
@@ -64,7 +66,7 @@ class NewsStorySentimentAnalysis(Schema):
         self.asset_sentiments = [
             a
             for a in self.asset_sentiments
-            if a.sentiment in SentimentSignal and a.asset in Asset
+            if a.sentiment in Sentiment and a.asset in Asset
         ]
         return self
 
@@ -98,7 +100,25 @@ class NewsStorySentimentAnalysis(Schema):
             "timestamp": self.timestamp,
             "llm_name": self.llm_name.value,
             **{
-                a.asset: SentimentSignal(a.sentiment).encoded()
-                for a in self.asset_sentiments
+                a.asset: Sentiment(a.sentiment).encoded() for a in self.asset_sentiments
             },
         }
+
+
+class AssetSentimentSignal(Schema):
+    asset: Asset
+    signal: SentimentSignal
+    timestamp: int = Field(default_factory=now_timestamp)
+    llm_name: LLMName
+
+    @classmethod
+    def from_analysis(cls, analysis: NewsStorySentimentAnalysis) -> Iterable[Self]:
+        return (
+            cls(
+                llm_name=analysis.llm_name,
+                timestamp=analysis.timestamp,
+                asset=Asset(a.asset),
+                signal=Sentiment(a.sentiment).encoded(),
+            )
+            for a in analysis.asset_sentiments
+        )

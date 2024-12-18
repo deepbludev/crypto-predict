@@ -2,11 +2,11 @@ import pytest
 
 from domain.llm import LLMName
 from domain.news import NewsOutlet, NewsStory
-from domain.sentiment_analysis import SentimentSignal
+from domain.sentiment_analysis import Sentiment
 from domain.trades import Asset
 from news_signals.signals.ollama import OllamaSentimentAnalyzer
 
-BULLISH, BEARISH = SentimentSignal.BULLISH, SentimentSignal.BEARISH
+BULLISH, BEARISH = Sentiment.BULLISH, Sentiment.BEARISH
 BTC, ETH, XRP = Asset.BTC, Asset.ETH, Asset.XRP
 
 
@@ -171,7 +171,7 @@ def ollama_analyzer() -> OllamaSentimentAnalyzer:
 def test_ollama_analyzer(
     ollama_analyzer: OllamaSentimentAnalyzer,
     story: str,
-    expected_sentiments: list[tuple[Asset, SentimentSignal]],
+    expected_sentiments: list[tuple[Asset, Sentiment]],
 ):
     result = ollama_analyzer.analyze(
         NewsStory(

@@ -2,6 +2,7 @@ import quixstreams as qs
 from loguru import logger
 
 from domain.news import NewsStory
+from domain.sentiment_analysis import AssetSentimentSignal
 from news_signals.core.settings import news_signals_settings
 from news_signals.signals import get_sentiment_analyzer
 
@@ -33,9 +34,10 @@ def generate_signal_from_news(stream_app: qs.Application):
         .apply(NewsStory.parse)
         .update(lambda story: logger.info(f"Analyzing story: {story.title}"))
         .apply(analyzer.analyze)
-        .apply(lambda analysis: analysis.encoded())
+        .apply(AssetSentimentSignal.from_analysis, expand=True)
+        .apply(lambda signal: signal.unpack())
         .to_topic(topic=stream_app.topic(name=settings.output_topic))
-        .update(lambda analysis: logger.info(f"Produced signal: {analysis}"))
+        .update(lambda signal: logger.info(f"Produced signal: {signal}"))
     )
 
     return stream_app
