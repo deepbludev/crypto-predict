@@ -11,7 +11,7 @@ from .ollama import OllamaSentimentAnalyzer
 def get_sentiment_analyzer() -> SentimentAnalyzer:
     """Gets the sentiment analyzer for the given provider."""
     settings = news_signals_settings()
-    provider, model = settings.llm_provider, settings.llm_model
+    provider, model = settings.llm_provider, settings.llm_name
 
     match provider:
         case LLMProvider.OLLAMA:

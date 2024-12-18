@@ -36,7 +36,6 @@ def transform(story_title: str, analyzer: SentimentAnalyzer) -> dict[str, Any]:
     instruction, input, output, and teacher model name.
     """
     story = NewsStory.dummy(title=story_title)
-    logger.info(f"Analyzing story: {story_title}")
     sentiment = analyzer.analyze(story)
     encoded_sentiments = [s.encoded() for s in sentiment.asset_sentiments]
 
@@ -44,9 +43,8 @@ def transform(story_title: str, analyzer: SentimentAnalyzer) -> dict[str, Any]:
         "instruction": analyzer.base_prompt,
         "input": sentiment.story,
         "output": encoded_sentiments,
-        "teacher_model_name": sentiment.llm_model,
+        "teacher_model_name": sentiment.llm_name,
     }
-    logger.info(f"Ouput: {json.dumps(output['output'], indent=2)}")
     return output
 
 

@@ -4,8 +4,9 @@ from textwrap import dedent
 from llama_index.core.llms import LLM
 from llama_index.core.prompts import PromptTemplate
 from loguru import logger
+from pydantic import ValidationError
 
-from domain.llm import LLMModel
+from domain.llm import LLMName
 from domain.news import NewsStory
 from domain.sentiment_analysis import (
     AssetSentiment,
@@ -54,6 +55,7 @@ base_prompt = f"""
     Response Format:
     - "asset" must be EXACTLY one of: {assets}
     - "sentiment" must be either: "BULLISH" or "BEARISH"
+    - ONLY return the JSON array. Do NOT include any other text, notes or comments.
     
     Example of a valid response:
     [
@@ -61,14 +63,13 @@ base_prompt = f"""
         {{"asset": "ETH", "sentiment": "BEARISH"}}
     ]
 
-    **Important:** Always strictly follow the response format and rules above. If you deviate from these instructions, the response will be considered invalid.
 """  # noqa
 
 
 class SentimentAnalyzer:
-    def __init__(self, llm_model: LLMModel, llm: LLM):
+    def __init__(self, llm_name: LLMName, llm: LLM):
         self.llm = llm
-        self.llm_model = llm_model
+        self.llm_name = llm_name
         self.base_prompt = base_prompt
         self.raw_prompt = dedent(f"""
             {self.base_prompt}
@@ -90,19 +91,19 @@ class SentimentAnalyzer:
             NewsStorySentimentAnalysis: The sentiment analysis result.
         """
         # Get raw completion instead of structured prediction
-        response = self.llm.complete(
-            prompt=self.prompt_template.format(news_story=story.title)
-        )
+        prompt = self.prompt_template.format(news_story=story.title)
+        response = self.llm.complete(prompt=prompt)
 
         try:
             sentiments = [AssetSentiment(**s) for s in json.loads(response.text)]
-        except (json.JSONDecodeError, KeyError, TypeError):
-            logger.error(f"[{self.llm_model}] Invalid JSON response: {response.text}")
-            # Handle invalid JSON or missing fields by returning empty list
+        except (ValidationError, json.JSONDecodeError, KeyError, TypeError) as e:
+            # Handle invalid responses
+            logger.error(f"[{self.llm_name}] Invalid response:{e}")
+            logger.error(response.text)
             sentiments = []
 
         return NewsStorySentimentAnalysis(
             asset_sentiments=sentiments,
-            llm_model=self.llm_model,
+            llm_name=self.llm_name,
             story=story.title,
         )

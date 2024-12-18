@@ -1,6 +1,6 @@
 import pytest
 
-from domain.llm import LLMModel
+from domain.llm import LLMName
 from domain.news import NewsOutlet, NewsStory
 from domain.sentiment_analysis import SentimentSignal
 from domain.trades import Asset
@@ -13,7 +13,7 @@ BTC, ETH, XRP = Asset.BTC, Asset.ETH, Asset.XRP
 @pytest.fixture
 def ollama_analyzer() -> OllamaSentimentAnalyzer:
     return OllamaSentimentAnalyzer(
-        llm_model=LLMModel.LLAMA_3_2_3B,
+        llm_name=LLMName.LLAMA_3_2_3B,
         base_url="http://localhost:11434",
     )
 

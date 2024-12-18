@@ -78,7 +78,7 @@ services:
       - FEATURES_INPUT_TOPIC="news_signals"
       - FEATURES_FG_NAME="news_signals"
       - FEATURES_FG_VERSION="1"
-      - FEATURES_FG_PK=["llm_model"]
+      - FEATURES_FG_PK=["llm_name"]
       - FEATURES_FG_EVENT_TIME="timestamp"
       - FEATURES_FG_MATERIALIZATION_JOB_SCHEDULE="0 0/15 * ? * * *"
     env_file:

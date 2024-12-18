@@ -2,7 +2,7 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from domain.llm import LLMModel, LLMProvider
+from domain.llm import LLMName, LLMProvider
 
 
 class Settings(BaseSettings):
@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     # LLM
     llm_provider: LLMProvider = LLMProvider.OLLAMA
-    llm_model: LLMModel = LLMModel.LLAMA_3_2_3B
+    llm_name: LLMName = LLMName.LLAMA_3_2_3B
 
     # Ollama
     ollama_base_url: str = "http://localhost:11434"

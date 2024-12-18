@@ -5,7 +5,7 @@ from typing import Any
 from pydantic import Field, model_validator
 
 from domain.core import Schema, now_timestamp
-from domain.llm import LLMModel
+from domain.llm import LLMName
 from domain.trades import Asset
 
 
@@ -53,7 +53,7 @@ class AssetSentiment(Schema):
 class NewsStorySentimentAnalysis(Schema):
     story: str
     timestamp: int = Field(default_factory=now_timestamp)
-    llm_model: LLMModel
+    llm_name: LLMName
     asset_sentiments: list[AssetSentiment] = Field(
         default_factory=list,
         description="The list of asset sentiments",
@@ -77,7 +77,7 @@ class NewsStorySentimentAnalysis(Schema):
             A dictionary with the following keys:
             - story: the news story
             - timestamp: the timestamp of the news story
-            - llm_model: the LLM model used to analyze the news story
+            - llm_name: the LLM model used to analyze the news story
             - asset_sentiments: an unpacked list of AssetSentimentAnalysisDetails,
             with the asset as the key and the sentiment as the value.
 
@@ -87,7 +87,7 @@ class NewsStorySentimentAnalysis(Schema):
             {
                 "story": "SEC approves Bitcoin ETF. ETH loses credibility.",
                 "timestamp": 1718534400,
-                "llm_model": "llama3.2-3b",
+                "llm_name": "llama3.2-3b",
                 "BTC": 1,
                 "ETH": -1,
             }
@@ -96,7 +96,7 @@ class NewsStorySentimentAnalysis(Schema):
         return {
             "story": self.story,
             "timestamp": self.timestamp,
-            "llm_model": self.llm_model.value,
+            "llm_name": self.llm_name.value,
             **{
                 a.asset: SentimentSignal(a.sentiment).encoded()
                 for a in self.asset_sentiments
