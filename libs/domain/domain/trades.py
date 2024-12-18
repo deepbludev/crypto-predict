@@ -58,6 +58,10 @@ class Asset(str, Enum):
     ZEC = "ZEC"
     ETC = "ETC"
 
+    @classmethod
+    def values(cls) -> list[str]:
+        return [a.value for a in cls]
+
 
 class Symbol(str, Enum):
     """Trade symbols Enum"""

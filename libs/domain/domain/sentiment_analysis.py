@@ -6,6 +6,7 @@ from pydantic import Field, model_validator
 
 from domain.core import Schema, now_timestamp
 from domain.llm import LLMModel
+from domain.trades import Asset
 
 
 class SentimentSignal(str, Enum):
@@ -24,14 +25,14 @@ class SentimentSignal(str, Enum):
         return [s.value for s in cls]
 
 
-class AssetSentimentAnalysisDetails(Schema):
+class AssetSentiment(Schema):
     """
     Represents the sentiment analysis for a single asset.
     """
 
     asset: str = Field(
         description=f"The asset to analyze the sentiment for. "
-        f"Must be one of the assets in the asset list: {SentimentSignal.values()}"
+        f"Must be one of the assets in the asset list: {Asset.values()}"
     )
     sentiment: str = Field(
         description=dedent("""
@@ -53,21 +54,19 @@ class NewsStorySentimentAnalysis(Schema):
     story: str
     timestamp: int = Field(default_factory=now_timestamp)
     llm_model: LLMModel
-    asset_sentiments: list[AssetSentimentAnalysisDetails]
+    asset_sentiments: list[AssetSentiment] = Field(
+        default_factory=list,
+        description="The list of asset sentiments",
+    )
 
-    @model_validator(mode="before")
-    @classmethod
-    def validate_sentiments_and_remove_invalid(
-        cls, data: dict[str, Any]
-    ) -> dict[str, Any]:
-        """
-        Validates the sentiments and removes invalid ones.
-        """
-        asset_sentiments = data.get("asset_sentiments", [])
-        data["asset_sentiments"] = [
-            a for a in asset_sentiments if a.sentiment in SentimentSignal
+    @model_validator(mode="after")
+    def filter_out_invalid_asset_sentiments(self):
+        self.asset_sentiments = [
+            a
+            for a in self.asset_sentiments
+            if a.sentiment in SentimentSignal and a.asset in Asset
         ]
-        return data
+        return self
 
     def encoded(self) -> dict[str, Any]:
         """

@@ -60,21 +60,23 @@ def load(output: dict[str, Any], output_filename: str):
         f.write(json.dumps(output) + "\n")
 
 
-def etl(num_stories: int, source_filename: str, output_filename: str):
+def etl(
+    num_stories: int,
+    source_filename: str,
+    output_filename: str,
+    analyzer: SentimentAnalyzer,
+):
     stories = extract(num_stories, source_filename)
 
-    analyzer = get_sentiment_analyzer()
     for story in tqdm(stories):
         output = transform(story, analyzer=analyzer)
         load(output, output_filename)
 
 
 if __name__ == "__main__":
-    num_stories = 1000
-    source_filename = "cryptopanic_news.csv"
-    output_filename = "cryptopanic_news_instruction_dataset.jsonl"
     etl(
-        num_stories,
-        source_filename,
-        output_filename,
+        num_stories=1000,
+        source_filename="cryptopanic_news.csv",
+        output_filename="cryptopanic_news_instruction_dataset.jsonl",
+        analyzer=get_sentiment_analyzer(),
     )

@@ -66,7 +66,7 @@ class CryptoPanicClient:
         while True:
             batch, next_url = self.get_news_batch(url)
             stories += batch
-            logger.debug(f"[{self.outlet}] Fetched {len(batch)} news items")
+            logger.info(f"[{self.outlet}] Fetched {len(batch)} news items")
 
             if not batch or not next_url:
                 break

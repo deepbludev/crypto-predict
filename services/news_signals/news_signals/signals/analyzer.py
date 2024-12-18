@@ -1,13 +1,14 @@
+import json
 from textwrap import dedent
 
-import pydantic
 from llama_index.core.llms import LLM
 from llama_index.core.prompts import PromptTemplate
+from loguru import logger
 
 from domain.llm import LLMModel
 from domain.news import NewsStory
 from domain.sentiment_analysis import (
-    AssetSentimentAnalysisDetails,
+    AssetSentiment,
     NewsStorySentimentAnalysis,
 )
 from domain.trades import Asset
@@ -51,41 +52,17 @@ base_prompt = f"""
     - The asset might be negatively impacted by market conditions
     
     Response Format:
-    - Must be a valid JSON array: [{{"asset": string, "sentiment": string}}]
     - "asset" must be EXACTLY one of: {assets}
     - "sentiment" must be either: "BULLISH" or "BEARISH"
     
-    Examples of CORRECT responses for different scenarios:
-
-    News: "Solana rises 20%"
-    []
-    # Empty array because SOL is not in allowed assets
-
-    News: "USD/BTC pair shows strength"
+    Example of a valid response:
     [
-        {{"asset": "BTC", "sentiment": "BULLISH"}}
+        {{"asset": "BTC", "sentiment": "BULLISH"}},
+        {{"asset": "ETH", "sentiment": "BEARISH"}}
     ]
-    # Only BTC is included because USD is not in allowed list
-
-    News: "Solana, Cardano, and Dogecoin show massive gains"
-    []
-    # Empty array since none of the mentioned assets are in allowed list
-
-    News: "Bitcoin drops 5% while Solana surges"
-    [
-        {{"asset": "BTC", "sentiment": "BEARISH"}}
-    ]
-    # Only BTC included, SOL ignored as it's not in allowed list
-
-    News: "Crypto exchange updates its UI design"
-    []
-    # Empty array because no clear impact on any allowed assets
 
     **Important:** Always strictly follow the response format and rules above. If you deviate from these instructions, the response will be considered invalid.
 """  # noqa
-
-
-AssetSentimentAnalysisList = pydantic.RootModel[list[AssetSentimentAnalysisDetails]]
 
 
 class SentimentAnalyzer:
@@ -112,14 +89,20 @@ class SentimentAnalyzer:
         Returns:
             NewsStorySentimentAnalysis: The sentiment analysis result.
         """
-        result = self.llm.structured_predict(
-            output_cls=AssetSentimentAnalysisList,
-            prompt=self.prompt_template,
-            news_story=story.title,
+        # Get raw completion instead of structured prediction
+        response = self.llm.complete(
+            prompt=self.prompt_template.format(news_story=story.title)
         )
 
+        try:
+            sentiments = [AssetSentiment(**s) for s in json.loads(response.text)]
+        except (json.JSONDecodeError, KeyError, TypeError):
+            logger.error(f"[{self.llm_model}] Invalid JSON response: {response.text}")
+            # Handle invalid JSON or missing fields by returning empty list
+            sentiments = []
+
         return NewsStorySentimentAnalysis(
-            asset_sentiments=[a for a in result.root if a.asset in Asset],
+            asset_sentiments=sentiments,
             llm_model=self.llm_model,
             story=story.title,
         )
