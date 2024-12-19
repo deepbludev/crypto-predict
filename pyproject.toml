@@ -9,6 +9,7 @@ dependencies = [
   "features",
   "news",
   "news_signals",
+  "price_predictions",
   "domain",
   # python packages
   "fastapi[all]>=0.115.5",
@@ -43,7 +44,7 @@ features = { workspace = true }
 news = { workspace = true }
 news_signals = { workspace = true }
 domain = { workspace = true }
-
+price_predictions = { workspace = true }
 [tool.uv.workspace]
 members = [
   "services/*",

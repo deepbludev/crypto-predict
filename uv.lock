@@ -9,6 +9,7 @@ members = [
     "features",
     "news",
     "news-signals",
+    "price-predictions",
     "ta",
     "trades",
 ]
@@ -325,6 +326,7 @@ dependencies = [
     { name = "news" },
     { name = "news-signals" },
     { name = "numpy" },
+    { name = "price-predictions" },
     { name = "pyarrow" },
     { name = "pydantic" },
     { name = "quixstreams" },
@@ -358,6 +360,7 @@ requires-dist = [
     { name = "news", editable = "services/news" },
     { name = "news-signals", editable = "services/news_signals" },
     { name = "numpy", specifier = ">=1.26.4" },
+    { name = "price-predictions", editable = "services/price_predictions" },
     { name = "pyarrow", specifier = ">=18.1.0" },
     { name = "pydantic", specifier = ">=2.9.2" },
     { name = "quixstreams", specifier = ">=3.3.0" },
@@ -1355,6 +1358,16 @@ sdist = { url = "https://files.pythonhosted.org/packages/96/2d/02d4312c973c6050a
 wheels = [
     { url = "https://files.pythonhosted.org/packages/88/5f/e351af9a41f866ac3f1fac4ca0613908d9a41741cfcf2228f4ad853b697d/pluggy-1.5.0-py3-none-any.whl", hash = "sha256:44e1ad92c8ca002de6377e165f3e0f1be63266ab4d554740532335b9d75ea669", size = 20556 },
 ]
+
+[[package]]
+name = "price-predictions"
+version = "0.1.0"
+source = { editable = "services/price_predictions" }
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = []
 
 [[package]]
 name = "propcache"

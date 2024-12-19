@@ -69,6 +69,11 @@ endif
 etl:
 	uv run python -m services.$(svc).etl.$(name)
 
+# ----------------------------------------
+# Training Pipelines
+# ----------------------------------------
+train:
+	uv run python -m services.price_predictions.training.train_model
 
 # ----------------------------------------
 # Development

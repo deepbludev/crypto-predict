@@ -1,7 +1,7 @@
 [project]
-name = "news_signals"
+name = "price-predictions"
 version = "0.1.0"
-description = "News signals microservice"
+description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 
