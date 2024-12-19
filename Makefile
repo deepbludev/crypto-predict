@@ -41,9 +41,9 @@ backfill:
 
 clean-backfill:
 	@echo "Cleaning historical topics..."
-	docker compose exec redpanda rpk topic delete -r ".*historical.*"
+	docker compose -f .docker/messagebus.compose.yaml exec redpanda rpk topic delete -r ".*historical.*"
 	@echo "Fetching historical consumer groups..."
-	docker compose exec redpanda rpk group list | grep historical | xargs -r docker compose exec redpanda rpk group delete
+	docker compose -f .docker/messagebus.compose.yaml exec redpanda rpk group list | grep historical | xargs -r docker compose -f .docker/messagebus.compose.yaml exec redpanda rpk group delete
 
 
 # ----------------------------------------

@@ -80,7 +80,7 @@ services:
       - FEATURES_FG_VERSION=1
       - FEATURES_FG_PK=["llm_name"]
       - FEATURES_FG_EVENT_TIME="timestamp"
-      - FEATURES_FG_MATERIALIZATION_JOB_SCHEDULE="0 0/15 * ? * * *"
+      - FEATURES_FG_MATERIALIZATION_JOB_SCHEDULE="0 0/15 * * * ?"
     env_file:
       - ../services/features/.env
     restart: always

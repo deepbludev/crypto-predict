@@ -12,7 +12,7 @@ services:
   # --- Trades service
   # ----------------------------------------
   trades:
-    container_name: trades
+    container_name: trades_historical
     build:
       context: ..
       dockerfile: .docker/Dockerfile
@@ -37,7 +37,7 @@ services:
   # --- Candles service
   # ----------------------------------------
   candles:
-    container_name: candles
+    container_name: candles_historical
     build:
       context: ..
       dockerfile: .docker/Dockerfile
@@ -64,7 +64,7 @@ services:
   # --- TA service
   # ----------------------------------------
   ta:
-    container_name: ta
+    container_name: ta_historical
     build:
       context: ..
       dockerfile: .docker/Dockerfile
@@ -90,7 +90,7 @@ services:
   # --- Features service
   # ----------------------------------------
   features:
-    container_name: features
+    container_name: features_ta_historical
     build:
       context: ..
       dockerfile: .docker/Dockerfile
@@ -107,10 +107,10 @@ services:
       - FEATURES_OUTPUT_TOPIC=features_historical_${BACKFILL_JOB_ID}
       - FEATURES_CONSUMER_GROUP=cg_features_historical_${BACKFILL_JOB_ID}
       - FEATURES_FG_NAME="ta"
-      - FEATURES_FG_VERSION="1"
+      - FEATURES_FG_VERSION=1
       - FEATURES_FG_PK=["symbol", "timeframe"]
       - FEATURES_FG_EVENT_TIME="timestamp"
-      - FEATURES_FG_MATERIALIZATION_JOB_SCHEDULE="0 0/15 * ? * * *"
+      - FEATURES_FG_MATERIALIZATION_JOB_SCHEDULE="0 0/15 * * * ?"
     env_file:
       - ../services/features/.env
     restart: on-failure
