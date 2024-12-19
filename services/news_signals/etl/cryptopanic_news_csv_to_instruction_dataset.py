@@ -1,3 +1,20 @@
+"""
+ETL: Cryptopanic News CSV to Instruction Dataset
+--------------------------------------------------
+
+This script is an ETL pipeline used to transform the Cryptopanic news CSV file into an
+instruction dataset.
+
+The ETL pipeline is composed of three steps:
+    1. Extract: Extracts a list of news stories from a CSV file.
+    2. Transform: Transforms a news story title into an instruction dataset entry.
+    3. Load: Loads the transformed story into a JSONL file locally.
+
+Run the script with the any of the following commands from the root of the repository:
+    - `make etl name=cryptopanic_news_csv_to_instruction_dataset`
+    - `uv run python -m services.news_signals.etl.cryptopanic_news_csv_to_instruction_dataset`
+"""  # noqa
+
 import json
 import os
 import random
