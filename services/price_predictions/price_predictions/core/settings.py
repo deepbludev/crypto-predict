@@ -2,6 +2,10 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from domain.candles import CandleTimeframe
+from domain.llm import LLMName
+from domain.trades import Asset
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -10,6 +14,10 @@ class Settings(BaseSettings):
         case_sensitive=False,
         env_prefix="price_predictions_",
     )
+
+    asset: Asset = Asset.BTC
+    timeframe: CandleTimeframe = CandleTimeframe.tf_1h
+    llm_name: LLMName = LLMName.LLAMA_3_2_3B
 
     # feature view settings
     fview_name: str = "price_predictions"
