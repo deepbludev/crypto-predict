@@ -27,7 +27,7 @@ def train(settings: Settings):
     """
     logger.info("Training Price Predictions model")
 
-    reader = PricePredictionsReader(settings)
+    _reader = PricePredictionsReader(settings)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 from typing import Any, cast
 
+import numpy as np
 import quixstreams as qs
 from loguru import logger
 
@@ -37,7 +38,8 @@ def do_ta_from_candles(stream_app: qs.Application):
         .filter(is_compatible_with_last_candle_if_any, stateful=True)
         .apply(update_state_with_latest, stateful=True)
         .apply(generate_ta, stateful=True)
-        .apply(Candle.serialize)
+        .apply(TechnicalAnalysis.serialize)
+        .apply(replace_nullish_with_zero)
         .to_topic(stream_app.topic(name=settings.output_topic))
         .update(lambda ta: logger.info(f"[{ta['exchange']}] TA: {ta}"))
     )
@@ -121,3 +123,13 @@ def generate_ta(latest: Candle, state: qs.State) -> TechnicalAnalysis:
             for metric in ("high", "low", "close", "volume")
         },
     )
+
+
+def replace_nullish_with_zero(ta: dict[str, Any]) -> dict[str, Any]:
+    """Replaces NaN values with 0.0."""
+    return {
+        k: 0.0
+        if isinstance(v, (float, np.floating)) and np.isnan(cast(float, v))
+        else v
+        for k, v in ta.items()
+    }
