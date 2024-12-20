@@ -4,10 +4,12 @@ from typing import Any, Iterable, Self
 
 import numpy as np
 from numpy.typing import NDArray
+from pydantic import computed_field
 from talib import stream
 
 from domain.candles import CandleProps
 from domain.core import Schema
+from domain.trades import Asset
 
 type NDFloats = NDArray[np.floating[Any]]
 """Type alias for a numpy array of floats."""
@@ -399,6 +401,12 @@ class TechnicalAnalysis(
     - Price Rate of Change (ROC at 6 days)
     - Simple Moving Average (SMA at 7, 14, 21, 28 days)
     """
+
+    @computed_field
+    @property
+    def asset(self) -> Asset:
+        """The asset of the candle."""
+        return self.symbol.to_asset()
 
     def key(self):
         return f"{self.symbol.value}-{self.timeframe.value}-{self.timestamp}"

@@ -1,3 +1,5 @@
+from typing import Any
+
 import quixstreams as qs
 from loguru import logger
 
@@ -28,8 +30,14 @@ def stream_features_and_load_to_feature_store(
     fs = HopsworksFeatureStoreSink().connect()
     (
         stream_app.dataframe(stream_app.topic(input_topic, value_deserializer="json"))
+        .apply(replace_none_with_zero)
         .update(lambda f: logger.info(f"[{input_topic}] Loading feature: {f}"))
         .sink(fs)
     )
 
     return stream_app
+
+
+def replace_none_with_zero(f: dict[str, Any]) -> dict[str, Any]:
+    """Replace None values with 0."""
+    return {k: 0 if v is None else v for k, v in f.items()}

@@ -46,12 +46,18 @@ class PricePredictionsReader:
 
         # init feature view
         self.fview = self._init_fview()
-        logger.info(f"Price Predictions fview initialized: {self.fview.name}")
+        logger.info(
+            f"Price Predictions Feature View initialized: {self.fview.name} "
+            f"(version: {self.fview.version})"
+        )
 
     def _init_fview(self) -> FeatureView:
+        join_query = self.ta.select_all()
+        # TODO: join with news_signals
+
         return self.fstore.get_or_create_feature_view(
             name=self.fview_name,
             version=self.fview_version,
-            query=self.news_signals.select_all(),  # TODO: join with ta
+            query=join_query,
             logging_enabled=True,
         )

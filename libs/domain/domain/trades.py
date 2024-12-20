@@ -77,6 +77,16 @@ class Symbol(str, Enum):
     XLMEUR = "XLMEUR"
     ETHEUR = "ETHEUR"
 
+    def to_asset(self) -> Asset:
+        """Convert the symbol to the asset."""
+        match len(self.value):
+            case 6:
+                return Asset(self.value[:3])
+            case 7:
+                return Asset(self.value[:4])
+            case _:
+                raise ValueError(f"Invalid symbol: {self.value}")
+
 
 class Trade(Schema):
     """

@@ -48,6 +48,11 @@ class HopsworksFeatureStoreSink(BatchingSink):
             event_time=self.fg_event_time,
             online_enabled=True,
         )
+
+        logger.info(
+            f"Hopsworks Feature Group initialized: {self.fg.name} "
+            f"(version: {self.fg.version})"
+        )
         try:
             # set the materialization job interval
             if job := cast(Any, self.fg.materialization_job):
