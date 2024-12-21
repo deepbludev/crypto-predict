@@ -28,7 +28,11 @@ def stream_features_and_load_to_feature_store(
     fs = HopsworksFeatureStoreSink().connect()
     (
         stream_app.dataframe(stream_app.topic(input_topic, value_deserializer="json"))
-        .update(lambda f: logger.info(f"[{input_topic}] Loading feature: {f}"))
+        .update(
+            lambda f: logger.info(
+                f"[{input_topic}] Loading feature: {f.get('timestamp')}"
+            )
+        )
         .sink(fs)
     )
 

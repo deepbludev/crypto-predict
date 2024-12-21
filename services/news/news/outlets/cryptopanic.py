@@ -80,10 +80,10 @@ class CryptoPanicClient:
         stories: list[NewsStory] = []
         url = f"{self.url}?auth_token={self.api_key}"
 
+        logger.info(f"[{self.outlet}] Fetching news...")
         while True:
             batch, next_url = self.get_news_batch(url)
             stories += batch
-            logger.info(f"[{self.outlet}] Fetched {len(batch)} news items")
 
             if not batch or not next_url:
                 break
@@ -144,6 +144,9 @@ class CryptoPanicOutletHistoricalSource(Source):
     ):
         settings = news_settings()
         self.filepath = settings.cryptopanic_historical_news_filepath
+        self.backfill_news_since = iso_to_timestamp(
+            settings.backfill_news_since.isoformat()
+        )
         super().__init__(name="cryptopanic_historical")
 
     def run(self):
@@ -152,23 +155,31 @@ class CryptoPanicOutletHistoricalSource(Source):
             rows = (cast(dict[str, Any], row.to_dict()) for _, row in df.iterrows())  # type: ignore
 
             for row in rows:
-                story = self._row_to_story(row)
+                story = row_to_story(row)
+
+                # skip stories that are older than the backfill_news_since
+                if story.timestamp < self.backfill_news_since:
+                    logger.info(f"Skipping old story: {story.published_at}")
+                    continue
+
+                # produce the story to the Kafka topic
                 message = self.serialize(key="news", value=story.unpack())
                 self.produce(key=message.key, value=message.value)
 
-    def _row_to_story(self, row: dict[str, Any]) -> NewsStory:
-        published_at = (
-            datetime.strptime(row["newsDatetime"], "%m/%d/%Y %H:%M")
-            .replace(tzinfo=timezone.utc)
-            .isoformat()
-        )
-        timestamp = iso_to_timestamp(published_at)
 
-        return NewsStory(
-            outlet=NewsOutlet.CRYPTOPANIC,
-            title=str(row["title"]),
-            published_at=published_at,
-            timestamp=timestamp,
-            source=str(row["sourceId"]),
-            url=str(row["url"]),
-        )
+def row_to_story(row: dict[str, Any]) -> NewsStory:
+    published_at = (
+        datetime.strptime(row["newsDatetime"], "%m/%d/%Y %H:%M")
+        .replace(tzinfo=timezone.utc)
+        .isoformat()
+    )
+    timestamp = iso_to_timestamp(published_at)
+
+    return NewsStory(
+        outlet=NewsOutlet.CRYPTOPANIC,
+        title=str(row["title"]),
+        published_at=published_at,
+        timestamp=timestamp,
+        source=str(row["sourceId"]),
+        url=str(row["url"]),
+    )

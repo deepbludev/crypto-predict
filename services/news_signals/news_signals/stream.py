@@ -37,7 +37,6 @@ def generate_signal_from_news(stream_app: qs.Application):
         .apply(AssetSentimentSignal.from_analysis, expand=True)
         .apply(lambda signal: signal.unpack())
         .to_topic(topic=stream_app.topic(name=settings.output_topic))
-        .update(lambda signal: logger.info(f"Produced signal: {signal}"))
     )
 
     return stream_app

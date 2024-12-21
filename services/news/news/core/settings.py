@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -18,6 +19,7 @@ class Settings(BaseSettings):
     consumer_group: str = "cg_news"
     news_topic: str = "news"
     news_ingestion_mode: NewsIngestionMode = NewsIngestionMode.LIVE
+    backfill_news_since: datetime = datetime.now() - timedelta(days=2)
 
     # cryptopanic settings
     cryptopanic_historical_news_filepath: str = (

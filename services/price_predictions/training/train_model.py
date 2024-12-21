@@ -12,10 +12,10 @@ def train(settings: Settings):
 
     It has the following steps:
     1. Reads the feature data from the Feature Store.
-    2. Splits the data into training and testing sets.
-    3. Trains the model using the training set.
-    4. Evaluates the model using the testing set.
-    5. Saves the model to the Model Registry.
+    2. Splits the data into training and testing sets. #TODO: implement this step
+    3. Trains the model using the training set. #TODO: implement this step
+    4. Evaluates the model using the testing set. #TODO: implement this step
+    5. Saves the model to the Model Registry. #TODO: implement this step
 
     For experiment tracking, it uses CometML.
 
@@ -27,7 +27,23 @@ def train(settings: Settings):
     """
     logger.info("Training Price Predictions model")
 
-    _reader = PricePredictionsReader(settings)
+    reader, days_back = PricePredictionsReader(settings), settings.days_back
+    logger.info(f"Reading data from {days_back} days back")
+    train_data = reader.train_data(days_back)
+
+    # TODO: remove this once the rest of the steps are implemented
+    logger.info(
+        train_data[
+            [
+                "asset",
+                "timeframe",
+                "news_signal_llm_name",
+                "news_signal_signal",
+                "timestamp",
+                "news_signal_timestamp",
+            ]
+        ]
+    )
 
 
 if __name__ == "__main__":

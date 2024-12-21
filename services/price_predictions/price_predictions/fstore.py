@@ -1,6 +1,8 @@
+from datetime import datetime, timedelta
 from typing import cast
 
 import hopsworks
+import pandas as pd
 from hsfs.feature_group import FeatureGroup
 from hsfs.feature_store import FeatureStore
 from hsfs.feature_view import FeatureView
@@ -18,10 +20,9 @@ class PricePredictionsReader:
     """
 
     def __init__(self, settings: Settings):
-        self.asset = settings.asset
         self.timeframe = settings.timeframe
         self.llm_name = settings.llm_name
-
+        self.asset = settings.asset
         self.fview_name = settings.fview_name
         self.fview_version = settings.fview_version
 
@@ -56,32 +57,39 @@ class PricePredictionsReader:
         )
 
     def _init_fview(self) -> FeatureView:
-        ta_for_asset_and_timeframe = (
-            self.ta.select_all()
-            .filter(self.ta.timeframe == self.timeframe)
-            .filter(self.ta.asset == self.asset)
-        )
-
-        news_signals_for_asset_and_llm_name = (
-            self.news_signals.select_all()
-            .filter(self.news_signals.asset == self.asset)
-            .filter(self.news_signals.llm_name == self.llm_name)
-        )
-
-        # Join on both asset
-        join_query = ta_for_asset_and_timeframe.join(
-            news_signals_for_asset_and_llm_name,
-            on=["asset"],
-            prefix="news_signal_",
-        )
-
         return self.fstore.get_or_create_feature_view(
             name=self.fview_name,
             version=self.fview_version,
-            query=join_query,
             labels=[],
+            logging_enabled=True,
             description="""
             Feature view combining TA and news signals by asset
             with point-in-time correctness
             """,
+            # Join views on asset using point-in-time correctness
+            query=self.ta.select_all().join(
+                self.news_signals.select_all(),
+                on=["asset"],
+                prefix="news_signal_",
+            ),
         )
+
+    def train_data(self, days_back: int = 30) -> pd.DataFrame:
+        """
+        Get the training data from the feature view for the given asset, timeframe
+        and llm_name, dating `days_back` days back.
+        """
+
+        df = cast(
+            pd.DataFrame,
+            self.fview.get_batch_data(
+                start_time=(now := datetime.now()) - timedelta(days=days_back),
+                end_time=now,
+            ),
+        )
+
+        return df[
+            (df.asset == self.asset.value)
+            & (df.timeframe == self.timeframe.value)
+            & (df.news_signal_llm_name == self.llm_name.value)
+        ]

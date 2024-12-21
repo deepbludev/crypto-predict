@@ -41,7 +41,12 @@ def do_ta_from_candles(stream_app: qs.Application):
         .apply(TechnicalAnalysis.serialize)
         .apply(replace_nullish_with_zero)
         .to_topic(stream_app.topic(name=settings.output_topic))
-        .update(lambda ta: logger.info(f"[{ta['exchange']}] TA: {ta}"))
+        .update(
+            lambda ta: logger.info(
+                f"[{ta['exchange']}] TA:"
+                f"{ta['symbol']}-{ta['timeframe']} {ta['timestamp']}"
+            )
+        )
     )
 
     return stream_app
