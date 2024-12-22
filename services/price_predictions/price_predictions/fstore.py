@@ -90,7 +90,7 @@ class PricePredictionsReader:
     def labeled_fview_name(self) -> str:
         """
         Get the name of the feature view with the symbol and timeframe.
-        Example: "price_predictions__xrpusd_1h"
+        Example: "sentimented_ta__xrpusd_1h"
         """
         return (
             f"{self.fview_base_name}__"
