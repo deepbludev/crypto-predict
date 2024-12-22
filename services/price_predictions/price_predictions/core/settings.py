@@ -3,8 +3,7 @@ from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from domain.candles import CandleTimeframe
-from domain.llm import LLMName
-from domain.trades import Asset
+from domain.trades import Symbol
 
 
 class Settings(BaseSettings):
@@ -17,9 +16,8 @@ class Settings(BaseSettings):
 
     # model training settings
     days_back: int = 30
-    llm_name: LLMName = LLMName.LLAMA_3_2_3B
     timeframe: CandleTimeframe = CandleTimeframe.tf_1h
-    asset: Asset = Asset.BTC
+    symbol: Symbol = Symbol.BTCUSD
 
     # feature view settings
     fview_name: str = "price_predictions"

@@ -28,22 +28,8 @@ def train(settings: Settings):
     logger.info("Training Price Predictions model")
 
     reader, days_back = PricePredictionsReader(settings), settings.days_back
-    logger.info(f"Reading data from {days_back} days back")
     train_data = reader.train_data(days_back)
-
-    # TODO: remove this once the rest of the steps are implemented
-    logger.info(
-        train_data[
-            [
-                "asset",
-                "timeframe",
-                "news_signal_llm_name",
-                "news_signal_signal",
-                "timestamp",
-                "news_signal_timestamp",
-            ]
-        ]
-    )
+    logger.info(f"Train data ({days_back} days back): {train_data.describe()}")
 
 
 if __name__ == "__main__":

@@ -3,6 +3,8 @@ from typing import cast
 
 import hopsworks
 import pandas as pd
+from hsfs.client import exceptions as hsfs_exceptions
+from hsfs.feature import Feature
 from hsfs.feature_group import FeatureGroup
 from hsfs.feature_store import FeatureStore
 from hsfs.feature_view import FeatureView
@@ -20,10 +22,9 @@ class PricePredictionsReader:
     """
 
     def __init__(self, settings: Settings):
+        self.symbol = settings.symbol
         self.timeframe = settings.timeframe
-        self.llm_name = settings.llm_name
-        self.asset = settings.asset
-        self.fview_name = settings.fview_name
+        self.fview_base_name = settings.fview_name
         self.fview_version = settings.fview_version
 
         logger.info(f"Connecting to Hopsworks: {settings.hopsworks_project_name}")
@@ -57,22 +58,45 @@ class PricePredictionsReader:
         )
 
     def _init_fview(self) -> FeatureView:
-        return self.fstore.get_or_create_feature_view(
-            name=self.fview_name,
-            version=self.fview_version,
-            labels=[],
-            logging_enabled=True,
-            description="""
-            Feature view combining TA and news signals by asset
-            with point-in-time correctness
-            """,
-            # Join views on asset using point-in-time correctness
-            query=self.ta.select_all().join(
-                self.news_signals.select_all(),
-                on=["asset"],
-                prefix="news_signal_",
-            ),
-        )
+        try:
+            return self.fstore.get_feature_view(
+                name=self.labeled_fview_name,
+                version=self.fview_version,
+            )
+        except hsfs_exceptions.RestAPIError:
+            logger.info(f"Creating feature view {self.labeled_fview_name}...")
+            query = (
+                self.ta.select_all()
+                .filter(Feature("asset") == self.symbol.to_asset().value)
+                .filter(Feature("timeframe") == self.timeframe.value)
+                .join(
+                    self.news_signals.select_all(),
+                    on=["asset"],
+                    prefix="news_signal_",
+                )
+            )
+            return self.fstore.create_feature_view(
+                name=self.labeled_fview_name,
+                version=self.fview_version,
+                description=f"""
+                    Feature view combining TA and news signals by
+                    asset with point-in-time correctness for symbol {self.symbol.value}
+                    and timeframe {self.timeframe.value}.
+                    """,
+                query=query,
+            )
+
+    @property
+    def labeled_fview_name(self) -> str:
+        """
+        Get the name of the feature view with the symbol and timeframe.
+        Example: "price_predictions__xrpusd_1h"
+        """
+        return (
+            f"{self.fview_base_name}__"
+            + f"{self.symbol.value}_"
+            + f"{self.timeframe.value}"
+        ).lower()
 
     def train_data(self, days_back: int = 30) -> pd.DataFrame:
         """
@@ -80,16 +104,10 @@ class PricePredictionsReader:
         and llm_name, dating `days_back` days back.
         """
 
-        df = cast(
+        return cast(
             pd.DataFrame,
             self.fview.get_batch_data(
                 start_time=(now := datetime.now()) - timedelta(days=days_back),
                 end_time=now,
             ),
         )
-
-        return df[
-            (df.asset == self.asset.value)
-            & (df.timeframe == self.timeframe.value)
-            & (df.news_signal_llm_name == self.llm_name.value)
-        ]
