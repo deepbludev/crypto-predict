@@ -33,8 +33,6 @@ class PricePredictionsReader:
             api_key_value=settings.hopsworks_api_key,
         )
         self.fstore: FeatureStore = self.project.get_feature_store()
-
-        # get feature groups
         self.ta = cast(
             FeatureGroup,
             self.fstore.get_feature_group(
@@ -49,8 +47,6 @@ class PricePredictionsReader:
                 version=settings.news_signals_fgroup_version,
             ),
         )
-
-        # init feature view
         self.fview = self._init_fview()
         logger.info(
             f"Price Predictions Feature View initialized: {self.fview.name} "
@@ -72,7 +68,7 @@ class PricePredictionsReader:
                 .join(
                     self.news_signals.select_all(),
                     on=["asset"],
-                    prefix="news_signal_",
+                    prefix="story_",
                 )
             )
             return self.fstore.create_feature_view(
