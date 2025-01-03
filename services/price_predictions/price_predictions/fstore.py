@@ -61,16 +61,7 @@ class PricePredictionsReader:
             )
         except hsfs_exceptions.RestAPIError:
             logger.info(f"Creating feature view {self.labeled_fview_name}...")
-            query = (
-                self.ta.select_all()
-                .filter(Feature("asset") == self.symbol.to_asset().value)
-                .filter(Feature("timeframe") == self.timeframe.value)
-                .join(
-                    self.news_signals.select_all(),
-                    on=["asset"],
-                    prefix="story_",
-                )
-            )
+
             return self.fstore.create_feature_view(
                 name=self.labeled_fview_name,
                 version=self.fview_version,
@@ -79,7 +70,16 @@ class PricePredictionsReader:
                     asset with point-in-time correctness for symbol {self.symbol.value}
                     and timeframe {self.timeframe.value}.
                     """,
-                query=query,
+                query=(
+                    self.ta.select_all()
+                    .filter(Feature("asset") == self.symbol.to_asset().value)
+                    .filter(Feature("timeframe") == self.timeframe.value)
+                    .join(
+                        self.news_signals.select_all(),
+                        on=["asset"],
+                        prefix="story_",
+                    )
+                ),
             )
 
     @property

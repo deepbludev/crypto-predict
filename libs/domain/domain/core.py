@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 from time import time
 from typing import Any, Self
 
@@ -39,3 +40,11 @@ def now_timestamp() -> int:
 def iso_to_timestamp(iso_datetime: str) -> int:
     """Convert an ISO 8601 datetime string to a timestamp in milliseconds."""
     return int(datetime.fromisoformat(iso_datetime).timestamp() * 1000)
+
+
+class DeploymentEnv(str, Enum):
+    """Deployment environment names"""
+
+    DEV = "dev"
+    STAGING = "staging"
+    PROD = "prod"

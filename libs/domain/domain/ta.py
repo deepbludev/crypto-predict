@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import Any, Iterable, Self
 
 import numpy as np
@@ -15,10 +16,40 @@ type NDFloats = NDArray[np.floating[Any]]
 """Type alias for a numpy array of floats."""
 
 
+class TechnicalIndicator(str, Enum):
+    """Technical indicator names"""
+
+    RSI_9 = "rsi_9"
+    RSI_14 = "rsi_14"
+    RSI_21 = "rsi_21"
+    RSI_28 = "rsi_28"
+    MACD = "macd"
+    MACD_SIGNAL = "macd_signal"
+    MACD_HIST = "macd_hist"
+    BBANDS_UPPER = "bbands_upper"
+    BBANDS_MIDDLE = "bbands_middle"
+    BBANDS_LOWER = "bbands_lower"
+    STOCHRSI_FASTK = "stochrsi_fastk"
+    STOCHRSI_FASTD = "stochrsi_fastd"
+    ADX = "adx"
+    VOLUME_EMA = "volume_ema"
+    ICHIMOKU_CONV = "ichimoku_conv"
+    ICHIMOKU_BASE = "ichimoku_base"
+    ICHIMOKU_SPAN_A = "ichimoku_span_a"
+    ICHIMOKU_SPAN_B = "ichimoku_span_b"
+    MFI = "mfi"
+    ATR = "atr"
+    PRICE_ROC = "price_roc"
+    SMA_7 = "sma_7"
+    SMA_14 = "sma_14"
+    SMA_21 = "sma_21"
+    SMA_28 = "sma_28"
+
+
 class RSI(Schema):
     """
     Relative Strength Index (RSI).
-    It includes the RSI at 9, 14, 21, 28 days.
+    It includes the RSI at 9, 14, 21, 28.
     """
 
     rsi_9: float | None
@@ -29,12 +60,12 @@ class RSI(Schema):
     @staticmethod
     def calc_rsi(close: Iterable[float]) -> RSI:
         """
-        Calculate the Relative Strength Index (RSI) for the periods 9, 14, 21, 28 days
+        Calculate the Relative Strength Index (RSI) for the periods 9, 14, 21, 28
 
         Args:
             close: The closing prices of the asset
         Returns:
-            The calculated RSI at 9, 14, 21, 28 days
+            The calculated RSI at 9, 14, 21, 28
         """
         return RSI(
             rsi_9=stream.RSI(close, timeperiod=9),
@@ -345,7 +376,7 @@ class PriceROC(Schema):
 class SMA(Schema):
     """
     Simple Moving Average (SMA).
-    Includes the sma at 7, 14, 21, 28 days.
+    Includes the sma at 7, 14, 21, 28.
     """
 
     sma_7: float | None
@@ -356,12 +387,12 @@ class SMA(Schema):
     @staticmethod
     def calc_sma(close: NDFloats) -> SMA:
         """
-        Calculate the Simple Moving Average (SMA) for 7, 14, 21, 28 days.
+        Calculate the Simple Moving Average (SMA) for 7, 14, 21, 28.
 
         Args:
             close: The closing prices of the asset
         Returns:
-            The calculated SMA at 7, 14, 21, 28 days
+            The calculated SMA at 7, 14, 21, 28
         """
         return SMA(
             sma_7=stream.SMA(close, timeperiod=7),
@@ -388,18 +419,18 @@ class TechnicalAnalysis(
     """Technical analysis of a candle.
     It includes the candle properties and the following technical indicators:
 
-    - Relative Strength Index (RSI at 9, 14, 21, 28 days)
-    - Moving Average Convergence Divergence (MACD at 12, 26, 9 days)
-    - Bollinger Bands (BBANDS at 20 days, stddev 2, moving average type simple)
-    - Stochastic Relative Strength Index (STOCHRSI at 10 days, 5 fastk period,
+    - Relative Strength Index (RSI at 9, 14, 21, 28)
+    - Moving Average Convergence Divergence (MACD at 12, 26, 9)
+    - Bollinger Bands (BBANDS at 20, stddev 2, moving average type simple)
+    - Stochastic Relative Strength Index (STOCHRSI at 10, 5 fastk period,
     3 fastd period, fastd moving average type simple)
-    - Average Directional Index (ADX at 14 days)
-    - Exponential Moving Average (EMA at 10 days)
-    - Ichimoku Cloud (Ichimoku at 9, 20, 40 days)
-    - Money Flow Index (MFI at 14 days)
-    - Average True Range (ATR at 10 days)
-    - Price Rate of Change (ROC at 6 days)
-    - Simple Moving Average (SMA at 7, 14, 21, 28 days)
+    - Average Directional Index (ADX at 14)
+    - Exponential Moving Average (EMA at 10)
+    - Ichimoku Cloud (Ichimoku at 9, 20, 40)
+    - Money Flow Index (MFI at 14)
+    - Average True Range (ATR at 10)
+    - Price Rate of Change (ROC at 6)
+    - Simple Moving Average (SMA at 7, 14, 21, 28)
     """
 
     @computed_field
