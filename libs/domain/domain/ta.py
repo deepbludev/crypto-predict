@@ -39,7 +39,7 @@ class TechnicalIndicator(str, Enum):
     ICHIMOKU_SPAN_B = "ichimoku_span_b"
     MFI = "mfi"
     ATR = "atr"
-    PRICE_ROC = "price_roc"
+    ROC = "roc"
     SMA_7 = "sma_7"
     SMA_14 = "sma_14"
     SMA_21 = "sma_21"

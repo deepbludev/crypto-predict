@@ -26,7 +26,7 @@ class PricePredictionsReader:
         self.timeframe = settings.timeframe
         self.fview_base_name = settings.fview_name
         self.fview_version = settings.fview_version
-
+        self.ta_features = settings.ta_features
         logger.info(f"Connecting to Hopsworks: {settings.hopsworks_project_name}")
         self.project = hopsworks.login(
             project=settings.hopsworks_project_name,
@@ -52,6 +52,12 @@ class PricePredictionsReader:
             f"Reading Feature View: {self.labeled_fview_name} "
             f"(version: {self.fview.version})"
         )
+
+    @property
+    def features(self) -> list[str]:
+        return ["end", "open", "close", "story_signal"] + [
+            indicator.value for indicator in self.ta_features
+        ]
 
     def init_fview(self) -> FeatureView:
         """
@@ -121,16 +127,21 @@ class PricePredictionsReader:
             pd.DataFrame: The features dataframe.
         """
 
-        features = cast(
-            pd.DataFrame,
-            self.fview.get_batch_data(
-                start_time=(now := datetime.now()) - timedelta(days=days_back),
-                end_time=now,
-            ),
+        features = (
+            cast(
+                pd.DataFrame,
+                self.fview.get_batch_data(
+                    start_time=(now := datetime.now()) - timedelta(days=days_back),
+                    end_time=now,
+                ),
+            )[self.features]
+            .rename(columns={"end": "close_time"})  # type: ignore
+            .dropna()
         )
+
         if target_horizon is not None:
             features["target"] = features["close"].shift(-target_horizon)
 
-        # TODO: add correlated symbols features
+        # TODO: add correlated symbols features in the future
 
         return features.dropna()

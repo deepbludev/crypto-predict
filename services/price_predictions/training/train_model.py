@@ -6,7 +6,8 @@ from comet_ml import CometExperiment
 from loguru import logger
 from price_predictions.core.settings import Settings, price_predictions_settings
 from price_predictions.fstore import PricePredictionsReader
-from price_predictions.model.base import CryptoPricePredictionDummyModel
+from price_predictions.model.base import CryptoPricePredictionModel, DummyModel
+from price_predictions.model.xgboost import XGBoostModel
 from sklearn.metrics import mean_absolute_error as mae  # type: ignore
 
 from domain.core import now_timestamp
@@ -25,8 +26,9 @@ def train(s: Settings):
     1. Setup experiment
     2. Train test split with features/target from the feature store
     3. Evaluate baseline model
-    4. Evaluate the XGBoost model.
-    5. Save the model to the Model Registry.
+    4. Train the XGBoost model.
+    5. Evaluate the XGBoost model.
+    6. Save the model to the Model Registry.
 
     For experiment tracking and model registry, it uses CometML.
 
@@ -44,12 +46,27 @@ def train(s: Settings):
     X_train, y_train, X_test, y_test = train_test_split(s, reader, exp)
 
     # 3. Evaluate baseline model
-    evaluate_baseline((X_train, y_train, X_test, y_test), exp=exp)
+    evaluate_baseline(
+        (X_train, y_train, X_test, y_test),
+        model=DummyModel(),
+        exp=exp,
+    )
 
-    # 4. Evaluate the XGBoost model.
-    # TODO: implement this step
+    # 4. Train the XGBoost model.
+    model = XGBoostModel().fit(
+        X_train,
+        y_train,
+        n_search_trials=s.hyperparam_tuning_search_trials,
+        n_splits=s.hyperparam_tuning_n_splits,
+    )
+    # 5. Evaluate the XGBoost model.
+    evaluate_model(
+        (X_train, y_train, X_test, y_test),
+        model=model,
+        exp=exp,
+    )
 
-    # 5. Save the model to the Model Registry.
+    # 6. Save the model to the Model Registry.
     # TODO: implement this step
 
 
@@ -97,16 +114,17 @@ def train_test_split(
     """
     Reads the features from the feature store and splits into train and test.
     """
-    train_data = reader.get_features(
+    logger.info(f"Train data ({s.days_back} days back)")
+    features = reader.get_features(
         days_back=s.days_back,
         target_horizon=s.target_horizon,
     )
-    logger.info(f"Train data ({s.days_back} days back): {train_data.info()}")
+    features.info()
 
     test_size = 0.2
-    train_size = int(len(train_data) * (1 - test_size))
-    train_df = train_data.iloc[:train_size]
-    test_df = train_data.iloc[train_size:]
+    train_size = int(len(features) * (1 - test_size))
+    train_df = features.iloc[:train_size]
+    test_df = features.iloc[train_size:]
 
     X_train, y_train = train_df.drop(columns=["target"]), train_df["target"]  # type: ignore
     X_test, y_test = test_df.drop(columns=["target"]), test_df["target"]  # type: ignore
@@ -127,19 +145,39 @@ def train_test_split(
     )
 
 
-def evaluate_baseline(train_test_split: TrainTestSplit, exp: CometExperiment):
+def evaluate_baseline(
+    train_test_split: TrainTestSplit,
+    model: CryptoPricePredictionModel,
+    exp: CometExperiment,
+):
     """
     Evaluate the baseline model using mean absolute error.
     """
-    model = CryptoPricePredictionDummyModel()
-
     X_train, y_train, X_test, y_test = train_test_split
-    y_test_pred, y_train_pred = model.predict(X_test), model.predict(X_train)
-    results: dict[str, Any] = {
-        "mae_dummy": mae(y_test, y_test_pred),
-        "mae_dummy_train": mae(y_train, y_train_pred),
-    }
-    exp.log_metrics(results)
+    exp.log_metrics(
+        {
+            "mae_dummy": mae(y_test, model.predict(X_test)),
+            "mae_dummy_train": mae(y_train, model.predict(X_train)),
+        }
+    )
+
+
+def evaluate_model(
+    train_test_split: TrainTestSplit,
+    model: CryptoPricePredictionModel,
+    exp: CometExperiment,
+):
+    """
+    Evaluate the model using mean absolute error, both on the test and training data.
+    The training data is used to see if the model is overfitting.
+    """
+    X_train, y_train, X_test, y_test = train_test_split
+    exp.log_metrics(
+        {
+            "mae": mae(y_test, model.predict(X_test)),
+            "mae_train": mae(y_train, model.predict(X_train)),  # check if overfitting
+        }
+    )
 
 
 if __name__ == "__main__":

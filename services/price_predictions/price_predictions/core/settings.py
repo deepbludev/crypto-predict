@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     timeframe: CandleTimeframe = CandleTimeframe.tf_1m
     target_horizon: int = 5
     hyperparam_tuning_search_trials: int = 0
-    hyperparam_tuning_n_splits: int = 5
+    hyperparam_tuning_n_splits: int = 3
     ta_features: list[TI] = [
         TI.SMA_21,
         TI.RSI_21,
@@ -43,7 +43,7 @@ class Settings(BaseSettings):
         TI.ICHIMOKU_SPAN_B,
         TI.MFI,
         TI.ATR,
-        TI.PRICE_ROC,
+        TI.ROC,
     ]
 
     # feature view settings

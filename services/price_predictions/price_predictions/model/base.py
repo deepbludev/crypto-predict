@@ -39,7 +39,7 @@ class CryptoPricePredictionModel(ABC):
         ...
 
 
-class CryptoPricePredictionDummyModel(CryptoPricePredictionModel):
+class DummyModel(CryptoPricePredictionModel):
     """
     A dummy model that predicts the crypto price using the value of a given feature,
     defaulting to the 'close' feature, in order to simulate a dummy prediction based on
