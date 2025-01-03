@@ -47,18 +47,24 @@ class PricePredictionsReader:
                 version=settings.news_signals_fgroup_version,
             ),
         )
-        self.fview = self._init_fview()
+        self.fview = self.init_fview()
         logger.info(
-            f"Price Predictions Feature View initialized: {self.fview.name} "
+            f"Reading Feature View: {self.labeled_fview_name} "
             f"(version: {self.fview.version})"
         )
 
-    def _init_fview(self) -> FeatureView:
+    def init_fview(self) -> FeatureView:
+        """
+        Initialize the feature view, using the labeled feature view name in order to
+        programmaticaly get or create the feature view based on the symbol and
+        timeframe.
+        """
         try:
             return self.fstore.get_feature_view(
                 name=self.labeled_fview_name,
                 version=self.fview_version,
             )
+
         except hsfs_exceptions.RestAPIError:
             logger.info(f"Creating feature view {self.labeled_fview_name}...")
 
@@ -94,16 +100,37 @@ class PricePredictionsReader:
             + f"{self.timeframe.value}"
         ).lower()
 
-    def train_data(self, days_back: int = 30) -> pd.DataFrame:
+    def get_features(
+        self,
+        days_back: int = 30,
+        target_horizon: int | None = None,
+    ) -> pd.DataFrame:
         """
-        Get the training data from the feature view for the given asset, timeframe
-        and llm_name, dating `days_back` days back.
+        Get the training data from the feature view for the given asset and timeframe
+        dating `days_back` days back.
+
+        If the target is required, it is added to the dataframe, by shifting the close
+        price `target_horizon` periods ahead. This is used for training the model.
+        In inference pipelines, the target is not required.
+
+        Args:
+            days_back (int): The number of days back to get the features from.
+            target_horizon (int): The number of periods ahead to shift the close price.
+
+        Returns:
+            pd.DataFrame: The features dataframe.
         """
 
-        return cast(
+        features = cast(
             pd.DataFrame,
             self.fview.get_batch_data(
                 start_time=(now := datetime.now()) - timedelta(days=days_back),
                 end_time=now,
             ),
         )
+        if target_horizon is not None:
+            features["target"] = features["close"].shift(-target_horizon)
+
+        # TODO: add correlated symbols features
+
+        return features

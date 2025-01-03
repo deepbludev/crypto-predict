@@ -24,7 +24,6 @@ class Settings(BaseSettings):
     target_horizon: int = 5
     hyperparam_tuning_search_trials: int = 0
     hyperparam_tuning_n_splits: int = 5
-    correlated_symbol_features: list[Symbol] = []
     ta_features: list[TI] = [
         TI.SMA_21,
         TI.RSI_21,

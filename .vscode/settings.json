@@ -20,5 +20,13 @@
     "./services",
     "./libs"
   ],
-  "python.languageServer": "Pylance"
+  "python.languageServer": "Pylance",
+  "python.analysis.diagnosticSeverityOverrides": {
+    // * uncomment to disable the warnings:
+    // "reportUnknownParameterType": "none",
+    // "reportMissingTypeArgument": "none",
+    // "reportMissingTypeStubs": "none",
+    // "reportUnknownArgumentType": "none",
+    // "reportUnknownVariableType": "none"
+  }
 }
