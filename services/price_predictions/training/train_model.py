@@ -69,6 +69,7 @@ def train(s: Settings):
         n_search_trials=s.hyperparam_tuning_search_trials,
         n_splits=s.hyperparam_tuning_n_splits,
     )
+
     # 5. Evaluate the XGBoost model.
     evaluate_model(
         (X_train, y_train, X_test, y_test),
@@ -198,7 +199,7 @@ def log_model(
     """
     Dumps the model with joblib and logs it in the experiment tracker.
     """
-    model_filepath = f"./models/{model.name}.joblib"
+    model_filepath = f"{model.name}.joblib"
     joblib.dump(model.unpack_model(), model_filepath)
     exp.log_model(name=model.name, file_or_folder=model_filepath)
     if should_register:

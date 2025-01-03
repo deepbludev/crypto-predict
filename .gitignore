@@ -183,7 +183,7 @@ cython_debug/
 *.vsix
 
 # Artifacts
-.models/
+**/*.joblib
 results/
 output*/
 model_cache/
