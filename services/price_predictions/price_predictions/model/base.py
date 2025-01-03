@@ -1,15 +1,48 @@
 from abc import ABC, abstractmethod
-from typing import Self, Sequence, cast
+from enum import Enum
+from typing import Any, Self, Sequence, cast
 
 import pandas as pd
 
+from domain.core import DeploymentEnv
+
+
+class ModelStatus(str, Enum):
+    NONE = "None"
+    DEV = "Development"
+    STAGING = "Staging"
+    QA = "QA"
+    PROD = "Production"
+
+    @classmethod
+    def from_deployment_env(cls, deployment_env: DeploymentEnv):
+        match deployment_env:
+            case DeploymentEnv.DEV:
+                return cls.DEV
+            case DeploymentEnv.STAGING:
+                return cls.STAGING
+            case DeploymentEnv.PROD:
+                return cls.PROD
+
 
 class CryptoPricePredictionModel(ABC):
+    def __init__(self, name: str, status: ModelStatus = ModelStatus.NONE):
+        self.name = name
+        self.status = status
+
+    @abstractmethod
+    def unpack_model(self) -> Any:
+        """
+        Unpack the model object. It should return the internal model object, such as
+        a `XGBRegressor` object.
+        """
+        ...
+
     @abstractmethod
     def fit(
         self,
         X: pd.DataFrame,
-        y: Sequence[float],
+        y: pd.Series,
         n_search_trials: int = 0,
         n_splits: int = 3,
     ) -> Self:
@@ -53,12 +86,16 @@ class DummyModel(CryptoPricePredictionModel):
         Args:
             feature: The feature to use as the dummy prediction (default: 'close').
         """
+        super().__init__(name="dummy", status=ModelStatus.NONE)
         self.feature = feature
+
+    def unpack_model(self):
+        return self
 
     def fit(
         self,
         X: pd.DataFrame,
-        y: Sequence[float],
+        y: pd.Series,
         n_search_trials: int = 0,
         n_splits: int = 3,
     ) -> Self:

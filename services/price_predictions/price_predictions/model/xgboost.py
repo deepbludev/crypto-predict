@@ -5,11 +5,14 @@ import optuna
 import pandas as pd
 from loguru import logger
 from numpy.typing import NDArray
-from sklearn.metrics import mean_absolute_error  # type: ignore
+from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import TimeSeriesSplit
-from xgboost import XGBRegressor  # type: ignore
+from xgboost import XGBRegressor
 
-from .base import CryptoPricePredictionModel
+from domain.candles import CandleTimeframe
+from domain.trades import Symbol
+
+from .base import CryptoPricePredictionModel, ModelStatus
 
 
 class XGBoostModel(CryptoPricePredictionModel):
@@ -19,6 +22,10 @@ class XGBoostModel(CryptoPricePredictionModel):
 
     def __init__(
         self,
+        symbol: Symbol,
+        timeframe: CandleTimeframe,
+        target_horizon: int,
+        status: ModelStatus,
         objective: str = "reg:absoluteerror",
         eval_metric: str = "mae",
     ):
@@ -30,11 +37,17 @@ class XGBoostModel(CryptoPricePredictionModel):
             eval_metric: The evaluation metric to use.
         """
         self.model = XGBRegressor(objective=objective, eval_metric=eval_metric)
+        name_base = "price_predictor_xgboost"
+        name = f"{name_base}_{symbol.value}_{timeframe.value}x{target_horizon}"
+        super().__init__(name)
+
+    def unpack_model(self) -> XGBRegressor:
+        return self.model
 
     def fit(
         self,
         X: pd.DataFrame,
-        y: Sequence[float],
+        y: pd.Series,
         n_search_trials: int = 0,
         n_splits: int = 5,
     ) -> Self:
@@ -65,7 +78,7 @@ class XGBoostModel(CryptoPricePredictionModel):
 
 def optimize_hyperparams(
     X: pd.DataFrame,
-    y: pd.Series,  # type: ignore
+    y: pd.Series,
     n_search_trials: int = 10,
     n_splits: int = 3,
 ) -> dict[str, Any]:
@@ -95,10 +108,10 @@ def optimize_hyperparams(
         # split X into `n_splits` folds for cross-validation
         mae_scores: list[float] = []
         tscv = TimeSeriesSplit(n_splits=n_splits)
-        for train_idx, test_idx in tscv.split(X):  # type: ignore
+        for train_idx, test_idx in tscv.split(X):
             # Split the data using typed indices
             X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
-            y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]  # type: ignore
+            y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
 
             model = XGBRegressor(**next_candidates).fit(X_train, y_train)
             y_pred: NDArray[np.float64] = model.predict(X_test)

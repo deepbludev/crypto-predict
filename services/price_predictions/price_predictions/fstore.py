@@ -119,6 +119,8 @@ class PricePredictionsReader:
         price `target_horizon` periods ahead. This is used for training the model.
         In inference pipelines, the target is not required.
 
+        TODO: add correlated symbols features in the future
+
         Args:
             days_back (int): The number of days back to get the features from.
             target_horizon (int): The number of periods ahead to shift the close price.
@@ -141,7 +143,5 @@ class PricePredictionsReader:
 
         if target_horizon is not None:
             features["target"] = features["close"].shift(-target_horizon)
-
-        # TODO: add correlated symbols features in the future
 
         return features.dropna()

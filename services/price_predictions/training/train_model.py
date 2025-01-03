@@ -1,18 +1,23 @@
-from typing import Any, Sequence, cast
+from typing import Any
 
 import comet_ml
+import joblib
 import pandas as pd
 from comet_ml import CometExperiment
 from loguru import logger
 from price_predictions.core.settings import Settings, price_predictions_settings
 from price_predictions.fstore import PricePredictionsReader
-from price_predictions.model.base import CryptoPricePredictionModel, DummyModel
+from price_predictions.model.base import (
+    CryptoPricePredictionModel,
+    DummyModel,
+    ModelStatus,
+)
 from price_predictions.model.xgboost import XGBoostModel
-from sklearn.metrics import mean_absolute_error as mae  # type: ignore
+from sklearn.metrics import mean_absolute_error as mae
 
 from domain.core import now_timestamp
 
-TrainTestSplit = tuple[pd.DataFrame, Sequence[float], pd.DataFrame, Sequence[float]]
+TrainTestSplit = tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]
 
 
 def train(s: Settings):
@@ -28,7 +33,7 @@ def train(s: Settings):
     3. Evaluate baseline model
     4. Train the XGBoost model.
     5. Evaluate the XGBoost model.
-    6. Save the model to the Model Registry.
+    6. Log & register the model
 
     For experiment tracking and model registry, it uses CometML.
 
@@ -53,7 +58,12 @@ def train(s: Settings):
     )
 
     # 4. Train the XGBoost model.
-    model = XGBoostModel().fit(
+    model = XGBoostModel(
+        symbol=s.symbol,
+        timeframe=s.timeframe,
+        target_horizon=s.target_horizon,
+        status=ModelStatus.from_deployment_env(s.deployment_env),
+    ).fit(
         X_train,
         y_train,
         n_search_trials=s.hyperparam_tuning_search_trials,
@@ -66,8 +76,13 @@ def train(s: Settings):
         exp=exp,
     )
 
-    # 6. Save the model to the Model Registry.
-    # TODO: implement this step
+    # 6. Log & register the model
+    log_model(
+        model=model,
+        exp=exp,
+        # TODO: modify to only register based on some condition, such as MAE < something
+        should_register=True,
+    )
 
 
 def setup_experiment(s: Settings, fview_name: str):
@@ -77,7 +92,7 @@ def setup_experiment(s: Settings, fview_name: str):
     now = now_timestamp()
     target_horizon_sec = s.timeframe.to_sec() * s.target_horizon
     exp_name = f"train_{s.symbol.value}_{s.timeframe.value}x{s.target_horizon}_{now}"
-    params = {
+    params: dict[str, Any] = {
         "fview_name": fview_name,
         "fview_version": s.fview_version,
         "deployment_env": s.deployment_env.value,
@@ -126,8 +141,8 @@ def train_test_split(
     train_df = features.iloc[:train_size]
     test_df = features.iloc[train_size:]
 
-    X_train, y_train = train_df.drop(columns=["target"]), train_df["target"]  # type: ignore
-    X_test, y_test = test_df.drop(columns=["target"]), test_df["target"]  # type: ignore
+    X_train, y_train = train_df.drop(columns=["target"]), train_df["target"]
+    X_test, y_test = test_df.drop(columns=["target"]), test_df["target"]
 
     shapes: dict[str, Any] = {
         "X_train": X_train.shape,
@@ -137,12 +152,7 @@ def train_test_split(
     }
     exp.log_parameters(shapes)
 
-    return (
-        X_train,
-        cast(Sequence[float], y_train),
-        X_test,
-        cast(Sequence[float], y_test),
-    )
+    return X_train, y_train, X_test, y_test
 
 
 def evaluate_baseline(
@@ -178,6 +188,24 @@ def evaluate_model(
             "mae_train": mae(y_train, model.predict(X_train)),  # check if overfitting
         }
     )
+
+
+def log_model(
+    model: CryptoPricePredictionModel,
+    exp: CometExperiment,
+    should_register: bool = True,
+):
+    """
+    Dumps the model with joblib and logs it in the experiment tracker.
+    """
+    model_filepath = f"./models/{model.name}.joblib"
+    joblib.dump(model.unpack_model(), model_filepath)
+    exp.log_model(name=model.name, file_or_folder=model_filepath)
+    if should_register:
+        exp.register_model(
+            model_name=model.name,
+            status=model.status.value,
+        )
 
 
 if __name__ == "__main__":

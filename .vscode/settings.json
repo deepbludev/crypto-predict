@@ -23,10 +23,10 @@
   "python.languageServer": "Pylance",
   "python.analysis.diagnosticSeverityOverrides": {
     // * uncomment to disable the warnings:
-    // "reportUnknownParameterType": "none",
-    // "reportMissingTypeArgument": "none",
+    "reportUnknownParameterType": "none",
+    "reportUnknownVariableType": "none",
+    "reportMissingTypeArgument": "none",
     // "reportMissingTypeStubs": "none",
     // "reportUnknownArgumentType": "none",
-    // "reportUnknownVariableType": "none"
   }
 }

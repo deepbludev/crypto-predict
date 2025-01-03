@@ -152,7 +152,7 @@ class CryptoPanicOutletHistoricalSource(Source):
     def run(self):
         while self.running:
             df = pd.read_csv(self.filepath).dropna()
-            rows = (cast(dict[str, Any], row.to_dict()) for _, row in df.iterrows())  # type: ignore
+            rows = (cast(dict[str, Any], row.to_dict()) for _, row in df.iterrows())
 
             for row in rows:
                 story = row_to_story(row)
