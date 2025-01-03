@@ -1,17 +1,16 @@
-from typing import Any, cast
+from typing import Any, Sequence, cast
 
 import comet_ml
 import pandas as pd
 from comet_ml import CometExperiment
 from loguru import logger
-from pandera.typing import Series
 from price_predictions.core.settings import Settings, price_predictions_settings
 from price_predictions.fstore import PricePredictionsReader
 from price_predictions.model.base import CryptoPricePredictionDummyModel
 
 from domain.core import now_timestamp
 
-TrainTestSplit = tuple[pd.DataFrame, Series[float], pd.DataFrame, Series[float]]
+TrainTestSplit = tuple[pd.DataFrame, Sequence[float], pd.DataFrame, Sequence[float]]
 
 
 def train(s: Settings):
@@ -98,10 +97,10 @@ def train_test_split(
     test_df = train_data.iloc[train_size:]
 
     X_train = train_df.drop(columns=["target"])
-    y_train = cast(Series[float], train_df["target"])
+    y_train = train_df["target"]  # type: ignore
 
     X_test = test_df.drop(columns=["target"])
-    y_test = cast(Series[float], test_df["target"])
+    y_test = test_df["target"]  # type: ignore
 
     shapes: dict[str, Any] = {
         "X_train": X_train.shape,
@@ -111,7 +110,12 @@ def train_test_split(
     }
     exp.log_parameters(shapes)
 
-    return X_train, y_train, X_test, y_test
+    return (
+        X_train,
+        cast(Sequence[float], y_train),
+        X_test,
+        cast(Sequence[float], y_test),
+    )
 
 
 def evaluate_baseline(

@@ -28,7 +28,6 @@ dependencies = [
   "rarfile>=4.2",
   "tqdm>=4.67.1",
   "comet-ml>=3.47.6",
-  "pandera>=0.22.1",
 ]
 
 [tool.uv]

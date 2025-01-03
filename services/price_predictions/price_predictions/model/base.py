@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Self, cast
+from typing import Self, Sequence, cast
 
 import pandas as pd
-from pandera.typing import Series
 
 
 class CryptoPricePredictionModel(ABC):
@@ -10,7 +9,7 @@ class CryptoPricePredictionModel(ABC):
     def fit(
         self,
         X: pd.DataFrame,
-        y: Series[float],
+        y: Sequence[float],
         n_search_trials: int = 0,
         n_splits: int = 3,
     ) -> Self:
@@ -27,7 +26,7 @@ class CryptoPricePredictionModel(ABC):
         ...
 
     @abstractmethod
-    def predict(self, X: pd.DataFrame) -> Series[float]:
+    def predict(self, X: pd.DataFrame) -> Sequence[float]:
         """
         Predict the target.
 
@@ -59,15 +58,15 @@ class CryptoPricePredictionDummyModel(CryptoPricePredictionModel):
     def fit(
         self,
         X: pd.DataFrame,
-        y: Series[float],
+        y: Sequence[float],
         n_search_trials: int = 0,
         n_splits: int = 3,
     ) -> Self:
         return self
 
-    def predict(self, X: pd.DataFrame) -> Series[float]:
+    def predict(self, X: pd.DataFrame) -> Sequence[float]:
         try:
-            return cast(Series[float], X[self.feature])
+            return cast(Sequence[float], X[self.feature])
         except KeyError as e:
             raise ValueError(
                 f"Feature '{self.feature}' not found in the X dataframe. {e}"
