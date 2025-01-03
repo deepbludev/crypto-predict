@@ -133,4 +133,4 @@ class PricePredictionsReader:
 
         # TODO: add correlated symbols features
 
-        return features
+        return features.dropna()

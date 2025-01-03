@@ -7,6 +7,7 @@ from loguru import logger
 from price_predictions.core.settings import Settings, price_predictions_settings
 from price_predictions.fstore import PricePredictionsReader
 from price_predictions.model.base import CryptoPricePredictionDummyModel
+from sklearn.metrics import mean_absolute_error as mae
 
 from domain.core import now_timestamp
 
@@ -21,13 +22,13 @@ def train(s: Settings):
     specified by the fview_name and fview_version.
 
     It has the following steps:
-    1. Reads the feature data from the Feature Store.
-    2. Splits the data into training and testing sets.
-    3. Trains the model using the training set. #TODO: implement this step
-    4. Evaluates the model using the testing set. #TODO: implement this step
-    5. Saves the model to the Model Registry. #TODO: implement this step
+    1. Setup experiment
+    2. Train test split with features/target from the feature store
+    3. Evaluate baseline model
+    4. Evaluate the XGBoost model.
+    5. Save the model to the Model Registry.
 
-    For experiment tracking, it uses CometML.
+    For experiment tracking and model registry, it uses CometML.
 
     Args:
         fstore_project (str): The name of the Hopsworks project.
@@ -35,10 +36,21 @@ def train(s: Settings):
         fview_name (str): The name of the feature view.
         fview_version (int): The version of the feature view.
     """
+    # 1. Setup experiment
     reader = PricePredictionsReader(s)
     exp, _ = setup_experiment(s, fview_name=reader.labeled_fview_name)
+
+    # 2. Train test split with features/target from the feature store
     X_train, y_train, X_test, y_test = train_test_split(s, reader, exp)
+
+    # 3. Evaluate baseline model
     evaluate_baseline((X_train, y_train, X_test, y_test), exp=exp)
+
+    # 4. Evaluate the XGBoost model.
+    # TODO: implement this step
+
+    # 5. Save the model to the Model Registry.
+    # TODO: implement this step
 
 
 def setup_experiment(s: Settings, fview_name: str):
@@ -118,16 +130,19 @@ def train_test_split(
     )
 
 
-def evaluate_baseline(
-    train_test_split: TrainTestSplit,
-    exp: CometExperiment,
-):
-    X_train, y_train, X_test, _ = train_test_split
+def evaluate_baseline(train_test_split: TrainTestSplit, exp: CometExperiment):
+    """
+    Evaluate the baseline model using mean absolute error.
+    """
     model = CryptoPricePredictionDummyModel()
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-    print(y_pred)
-    # exp.log_metrics({"mae": mean_absolute_error(y_test, y_pred)})
+
+    X_train, y_train, X_test, y_test = train_test_split
+    y_test_pred, y_train_pred = model.predict(X_test), model.predict(X_train)
+    results: dict[str, Any] = {
+        "mae_dummy_test": mae(y_test, y_test_pred),
+        "mae_dummy_train": mae(y_train, y_train_pred),
+    }
+    exp.log_metrics(results)
 
 
 if __name__ == "__main__":
