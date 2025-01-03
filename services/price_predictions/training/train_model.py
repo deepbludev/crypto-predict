@@ -7,7 +7,7 @@ from loguru import logger
 from price_predictions.core.settings import Settings, price_predictions_settings
 from price_predictions.fstore import PricePredictionsReader
 from price_predictions.model.base import CryptoPricePredictionDummyModel
-from sklearn.metrics import mean_absolute_error as mae
+from sklearn.metrics import mean_absolute_error as mae  # type: ignore
 
 from domain.core import now_timestamp
 
@@ -108,11 +108,8 @@ def train_test_split(
     train_df = train_data.iloc[:train_size]
     test_df = train_data.iloc[train_size:]
 
-    X_train = train_df.drop(columns=["target"])
-    y_train = train_df["target"]  # type: ignore
-
-    X_test = test_df.drop(columns=["target"])
-    y_test = test_df["target"]  # type: ignore
+    X_train, y_train = train_df.drop(columns=["target"]), train_df["target"]  # type: ignore
+    X_test, y_test = test_df.drop(columns=["target"]), test_df["target"]  # type: ignore
 
     shapes: dict[str, Any] = {
         "X_train": X_train.shape,
@@ -139,7 +136,7 @@ def evaluate_baseline(train_test_split: TrainTestSplit, exp: CometExperiment):
     X_train, y_train, X_test, y_test = train_test_split
     y_test_pred, y_train_pred = model.predict(X_test), model.predict(X_train)
     results: dict[str, Any] = {
-        "mae_dummy_test": mae(y_test, y_test_pred),
+        "mae_dummy": mae(y_test, y_test_pred),
         "mae_dummy_train": mae(y_train, y_train_pred),
     }
     exp.log_metrics(results)
