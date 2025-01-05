@@ -26,7 +26,7 @@
     "reportUnknownParameterType": "none",
     "reportUnknownVariableType": "none",
     "reportMissingTypeArgument": "none",
+    "reportUnknownArgumentType": "none",
     // "reportMissingTypeStubs": "none",
-    // "reportUnknownArgumentType": "none",
   }
 }

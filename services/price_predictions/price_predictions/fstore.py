@@ -129,19 +129,43 @@ class PricePredictionsReader:
             pd.DataFrame: The features dataframe.
         """
 
-        features = (
-            cast(
-                pd.DataFrame,
-                self.fview.get_batch_data(
-                    start_time=(now := datetime.now()) - timedelta(days=days_back),
-                    end_time=now,
-                ),
-            )[self.features]
-            .rename(columns={"end": "close_time"})  # type: ignore
-            .dropna()
+        # get the features from the feature view
+        features = cast(
+            pd.DataFrame,
+            self.fview.get_batch_data(
+                start_time=(now := datetime.now()) - timedelta(days=days_back),
+                end_time=now,
+            ),
         )
 
-        if target_horizon is not None:
-            features["target"] = features["close"].shift(-target_horizon)
+        # rename the end column to close_time and drop the na values
+        features = (
+            features[self.features]
+            .rename(columns={"end": "close_time"})
+            .dropna()
+            .drop_duplicates(subset=["close_time"], keep="last")
+            .sort_values(by="close_time")
+        )
 
-        return features.dropna()
+        if not target_horizon:
+            # return the features without the target
+            return features
+
+        # shift the close_time by the target_horizon
+        time_delta = self.timeframe.to_sec() * target_horizon * 1000
+
+        # get the target and shift the close_time by the target_horizon
+        target = features[["close_time", "close"]].copy()
+        target["close_time"] = target["close_time"] - time_delta
+
+        # merge the features with the target
+        return (
+            features.merge(
+                target,
+                on="close_time",
+                how="left",
+                suffixes=("", "_target"),
+            )
+            .rename(columns={"close_target": "target"})
+            .dropna()
+        )

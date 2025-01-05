@@ -1,10 +1,9 @@
-from typing import Any, Self, Sequence, cast
+from typing import Any, Self, Sequence
 
 import numpy as np
 import optuna
 import pandas as pd
 from loguru import logger
-from numpy.typing import NDArray
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import TimeSeriesSplit
 from xgboost import XGBRegressor
@@ -18,6 +17,9 @@ from .base import CryptoPricePredictionModel, ModelStatus
 class XGBoostModel(CryptoPricePredictionModel):
     """
     XGBoost model for crypto price predictions with hyperparam tuning.
+
+    TODO: support multiple models with different lookback periods in order to
+    improve the model's training results.
     """
 
     def __init__(
@@ -36,12 +38,25 @@ class XGBoostModel(CryptoPricePredictionModel):
             objective: The objective function to use.
             eval_metric: The evaluation metric to use.
         """
+        self.target_horizon = target_horizon
         self.objective = objective
         self.eval_metric = eval_metric
-        self.model = XGBRegressor(objective=objective, eval_metric=eval_metric)
+        self.init_model()
+
         name_base = "price_predictor_xgboost"
         name = f"{name_base}_{symbol.value}_{timeframe.value}x{target_horizon}"
         super().__init__(name, status)
+
+    def init_model(self, hyperparams: dict[str, Any] | None = None) -> Self:
+        self.model = self.create_xgb(**(hyperparams or {}))
+        return self
+
+    def create_xgb(self, **kwargs: Any) -> XGBRegressor:
+        return XGBRegressor(
+            objective=self.objective,
+            eval_metric=self.eval_metric,
+            **kwargs,
+        )
 
     def unpack_model(self) -> XGBRegressor:
         return self.model
@@ -63,100 +78,110 @@ class XGBoostModel(CryptoPricePredictionModel):
                 tuning. If 0, the model will be fitted without hyperparam tuning.
             n_splits (int): The number of splits for the cross-validation.
         """
-        if not n_search_trials:
-            logger.info("Fitting XGBoost model without hyperparam tuning")
-            self.model = XGBRegressor(
-                objective=self.objective, eval_metric=self.eval_metric
-            )
-        else:
-            logger.info("Fitting XGBoost model with hyperparam tuning")
-            hyperparams = optimize_hyperparams(X, y, n_search_trials, n_splits)
-            self.model = XGBRegressor(
-                objective=self.objective,
-                eval_metric=self.eval_metric,
-                **hyperparams,
-            )
 
+        self.init_model(
+            hyperparams=self.optimize_hyperparams(X, y, n_search_trials, n_splits)
+            if n_search_trials
+            else None
+        )
         self.model.fit(X, y)
         return self
 
     def predict(self, X: pd.DataFrame) -> Sequence[float]:
         return self.model.predict(X)
 
-
-def optimize_hyperparams(
-    X: pd.DataFrame,
-    y: pd.Series,
-    n_search_trials: int = 10,
-    n_splits: int = 10,
-) -> dict[str, Any]:
-    """
-    Optimize the hyperparams for the XGBoost model using the Optuna library.
-    """
-    study = optuna.create_study(
-        direction="minimize",
-        # add pruner to stop unpromising trials early
-        pruner=optuna.pruners.MedianPruner(
-            n_startup_trials=5,
-            n_warmup_steps=5,
-            interval_steps=3,
-        ),
-    )
-
-    def mae_objective(trial: optuna.Trial) -> float:
+    def optimize_hyperparams(
+        self,
+        X: pd.DataFrame,
+        y: pd.Series,
+        n_search_trials: int = 100,
+        n_splits: int = 3,
+    ) -> dict[str, Any]:
         """
-        Objective function for Optuna using the mean absolute error as the metric
-        to minimize.
+        Optimize the hyperparams for the XGBoost model using the Optuna library.
         """
-
-        # get the next set of hyperparams to try using the previous trial results
-        # TODO: There is room to improve the search space.
-        # Find the complete list of hyperparameters here:
-        # https://xgboost.readthedocs.io/en/stable/parameter.html
-        next_candidates = {
-            # More focused ranges based on common best practices
-            "n_estimators": trial.suggest_int("n_estimators", 100, 1000),
-            "max_depth": trial.suggest_int("max_depth", 3, 10),
-            "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.1, log=True),
-            "min_child_weight": trial.suggest_int("min_child_weight", 1, 7),
-            "max_delta_step": trial.suggest_int("max_delta_step", 0, 10),
-            "subsample": trial.suggest_float("subsample", 0.5, 1.0),
-            "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
-            "colsample_bylevel": trial.suggest_float("colsample_bylevel", 0.5, 1.0),
-            "alpha": trial.suggest_float("alpha", 1e-8, 1.0, log=True),
-            "lambda": trial.suggest_float("lambda", 1e-8, 1.0, log=True),
-            "grow_policy": trial.suggest_categorical(
-                "grow_policy", ["depthwise", "lossguide"]
+        study = optuna.create_study(
+            direction="minimize",
+            # add pruner to stop unpromising trials early
+            pruner=optuna.pruners.MedianPruner(
+                n_startup_trials=10,
+                n_warmup_steps=10,
+                interval_steps=5,
             ),
-            "booster": trial.suggest_categorical("booster", ["gbtree", "dart"]),
-        }
-        try:
-            # split X into `n_splits` folds for cross-validation
-            mae_scores: list[float] = []
-            tscv = TimeSeriesSplit(n_splits=n_splits)
-            for train_idx, test_idx in tscv.split(X):
-                # Split the data using typed indices
-                X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
-                y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+        )
 
-                model = XGBRegressor(
-                    **next_candidates,
-                    early_stopping_rounds=10,
-                    eval_metric="mae",
-                ).fit(X_train, y_train, eval_set=[(X_test, y_test)], verbose=False)
+        def mae_objective(trial: optuna.Trial) -> float:
+            """
+            Objective function for Optuna using the mean absolute error as the metric
+            to minimize.
+            """
 
-                y_pred: NDArray[np.float64] = model.predict(X_test)
+            try:
+                # split X into `n_splits` folds for cross-validation
+                min_gap = self.target_horizon
+                tscv = TimeSeriesSplit(
+                    n_splits=n_splits,
+                    gap=min_gap,
+                    test_size=int(len(X) * 0.2),
+                )
 
-                mae = cast(float, mean_absolute_error(y_test, y_pred))
-                mae_scores.append(mae)
+                mae_scores: list[float] = []
+                for train_idx, test_idx in tscv.split(X):
+                    X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
+                    y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
 
-            return float(np.mean(mae_scores))
+                    # get the next candidates using the previous trial results
+                    next_candidates = {
+                        # core parameters
+                        "n_estimators": trial.suggest_int("n_estimators", 200, 2000),
+                        "max_depth": trial.suggest_int("max_depth", 3, 12),
+                        "learning_rate": trial.suggest_float(
+                            "learning_rate", 1e-4, 0.3, log=True
+                        ),
+                        # sampling parameters
+                        "subsample": trial.suggest_float("subsample", 0.6, 1.0),
+                        "colsample_bytree": trial.suggest_float(
+                            "colsample_bytree", 0.6, 1.0
+                        ),
+                        # regularization parameters
+                        "min_child_weight": trial.suggest_int(
+                            "min_child_weight", 1, 10
+                        ),
+                        "gamma": trial.suggest_float("gamma", 1e-8, 1.0, log=True),
+                        "alpha": trial.suggest_float("alpha", 1e-8, 1.0, log=True),
+                        "lambda": trial.suggest_float("lambda", 1e-8, 1.0, log=True),
+                        # performance optimization
+                        "tree_method": "hist",  # much faster than default
+                        "early_stopping_rounds": 50,
+                    }
 
-        except Exception as e:
-            logger.error(f"Trial failed: {e}")
-            raise optuna.exceptions.TrialPruned() from e
+                    model = self.create_xgb(**next_candidates)
+                    model.fit(
+                        X_train,
+                        y_train,
+                        eval_set=[(X_test, y_test)],
+                        verbose=False,
+                    )
+                    y_pred = model.predict(X_test)
+                    fold_mae = float(mean_absolute_error(y_test, y_pred))
+                    mae_scores.append(fold_mae)
 
-    study.optimize(func=mae_objective, n_trials=n_search_trials)
-    logger.info(f"Best trial: {study.best_trial.number}, value: {study.best_value:.4f}")
+                    # report intermediate objective value for pruning
+                    trial.report(fold_mae, len(mae_scores) - 1)
+                    if trial.should_prune():
+                        raise optuna.exceptions.TrialPruned()
 
-    return study.best_params
+                return float(np.mean(mae_scores))
+
+            except Exception as e:
+                logger.error(f"Trial failed: {e}")
+                raise optuna.exceptions.TrialPruned() from e
+
+        study.optimize(func=mae_objective, n_trials=n_search_trials)
+        logger.info(
+            f"Best trial: {study.best_trial.number} "
+            f"Best value: {study.best_value:.4f} "
+            f"Best params: {study.best_params}"
+        )
+
+        return study.best_params

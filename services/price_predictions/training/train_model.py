@@ -2,6 +2,7 @@ from typing import Any
 
 import comet_ml
 import joblib
+import numpy as np
 import pandas as pd
 from comet_ml import CometExperiment
 from loguru import logger
@@ -14,6 +15,8 @@ from price_predictions.model.base import (
 )
 from price_predictions.model.xgboost import XGBoostModel
 from sklearn.metrics import mean_absolute_error as mae
+from sklearn.metrics import mean_squared_error as mse
+from sklearn.metrics import r2_score
 
 from domain.core import now_timestamp
 
@@ -163,6 +166,7 @@ def evaluate_baseline(
 ):
     """
     Evaluate the baseline model using mean absolute error.
+    TODO: use latest registered model from CometML as baseline
     """
     X_train, y_train, X_test, y_test = train_test_split
     exp.log_metrics(
@@ -183,12 +187,31 @@ def evaluate_model(
     The training data is used to see if the model is overfitting.
     """
     X_train, y_train, X_test, y_test = train_test_split
-    exp.log_metrics(
-        {
-            "mae": mae(y_test, model.predict(X_test)),
-            "mae_train": mae(y_train, model.predict(X_train)),  # check if overfitting
-        }
-    )
+
+    # Get predictions
+    y_pred_test, y_pred_train = model.predict(X_test), model.predict(X_train)
+
+    # Calculate various metrics
+    metrics = {
+        "mae": mae(y_test, y_pred_test),
+        "mae_train": mae(y_train, y_pred_train),
+        "mape": np.mean(np.abs((y_test - y_pred_test) / y_test)) * 100,
+        "rmse": np.sqrt(mse(y_test, y_pred_test)),
+        "r2": r2_score(y_test, y_pred_test),
+    }
+
+    exp.log_metrics(metrics)
+
+    # Log feature importance
+    xgb_model = model.unpack_model()
+    if hasattr(xgb_model, "feature_importances_"):
+        feature_imp = pd.DataFrame(
+            {
+                "feature": X_test.columns,
+                "importance": xgb_model.feature_importances_,
+            }
+        ).sort_values("importance", ascending=False)
+        exp.log_table("feature_importance.csv", feature_imp)
 
 
 def log_model(
