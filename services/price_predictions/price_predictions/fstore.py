@@ -138,11 +138,12 @@ class PricePredictionsReader:
             ),
         )
 
-        # rename the end column to close_time and drop the na values
         features = (
+            # only select the features we need
             features[self.features]
             .rename(columns={"end": "close_time"})
             .dropna()
+            # drop duplicates to remove incomplete candles from real-time data
             .drop_duplicates(subset=["close_time"], keep="last")
             .sort_values(by="close_time")
         )
