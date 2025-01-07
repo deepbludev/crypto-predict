@@ -45,7 +45,9 @@ class PricePredictionsStore:
         self.timeframe = settings.timeframe
         self.fview_base_name = fview_base_name or settings.fview_name.split("__")[0]
         self.fview_version = fview_version or settings.fview_version
-        self.ta_features = ta_features or settings.ta_features
+        self.ta_features = [
+            TechnicalIndicator(f) for f in ta_features or settings.ta_features
+        ]
 
         logger.info(f"Connecting to Hopsworks: {settings.hopsworks_project_name}")
         self.project = hopsworks.login(
@@ -136,11 +138,11 @@ class PricePredictionsStore:
         Get the training data from the feature view for the given asset and timeframe
         dating `days_back` days back.
 
-        If the target is required, it is added to the dataframe, by shifting the close
-        price `target_horizon` periods ahead. This is used for training the model.
-        In inference pipelines, the target is not required.
+        If a target is required (training case), it is added to the dataframe, by
+        joining the features with the close time in the target horizon.
 
-        TODO: add correlated symbols features in the future
+        Otherwise, only the features are returned (inference case).
+
 
         Args:
             days_back (int): The number of days back to get the features from.
@@ -148,6 +150,9 @@ class PricePredictionsStore:
 
         Returns:
             pd.DataFrame: The features dataframe.
+
+        TODO:
+            - add correlated symbols features in the future
         """
 
         # get the features from the feature view
@@ -190,4 +195,22 @@ class PricePredictionsStore:
             )
             .rename(columns={"close_target": "target"})
             .dropna()
+        )
+
+    def get_inference_features(self) -> pd.DataFrame:
+        """
+        Get the inference features from the feature view.
+        """
+        vectors = self.fview.get_feature_vectors(
+            return_type="pandas",
+            entry=[
+                {
+                    "symbol": self.symbol.value,
+                    "timeframe": self.timeframe.value,
+                    "story_asset": self.symbol.to_asset().value,
+                }
+            ],
+        )
+        return pd.DataFrame(vectors)[self.features].rename(
+            columns={"end": "close_time"}
         )

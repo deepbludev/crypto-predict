@@ -3,11 +3,28 @@ from typing import Annotated, Any, cast
 
 import comet_ml
 import joblib
+from pydantic import Field, computed_field
 from xgboost import XGBRegressor
 
+from domain.candles import CandleTimeframe
+from domain.core import Schema
+from domain.trades import Symbol
 from price_predictions.core.settings import Settings
 from price_predictions.fstore import PricePredictionsStore
 from price_predictions.model.xgboost import XGBoostModel
+
+
+class Prediction(Schema):
+    symbol: Symbol
+    timeframe: CandleTimeframe
+    horizon: int = Field(..., description="The horizon of the prediction in seconds")
+    close_time: int
+    predicted_close_price: float
+
+    @computed_field
+    @property
+    def prediction_timestamp(self) -> int:
+        return self.close_time + self.horizon * self.timeframe.to_sec()
 
 
 class PricePredictor:
@@ -43,6 +60,7 @@ class PricePredictor:
         )
         latest_version: str = next(iter(sorted(model.find_versions(), reverse=True)))
         model.download(version=latest_version, output_folder="./")
+
         exp_key: str = model.get_details(latest_version)["experimentKey"]
         xgboost_model = joblib.load(filename=f"./{self.model_name}.joblib")
 
@@ -67,6 +85,24 @@ class PricePredictor:
             ta_features=json.loads(get_param("ta_features")),
         )
 
+    def predict(self) -> Prediction:
+        """
+        Predict the price of the asset.
+        """
+        feature_vectors = self.fstore.get_inference_features()
+        close_time = feature_vectors["close_time"].iloc[0]
+        prediction = self.model.predict(feature_vectors)[0]
+
+        return Prediction(
+            symbol=self.symbol,
+            timeframe=self.timeframe,
+            horizon=self.target_horizon,
+            close_time=close_time,
+            predicted_close_price=prediction,
+        )
+
 
 if __name__ == "__main__":
     predictor = PricePredictor(settings=Settings())
+    prediction = predictor.predict()
+    print(prediction)
