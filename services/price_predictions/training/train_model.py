@@ -12,7 +12,7 @@ from sklearn.metrics import r2_score
 
 from domain.core import now_timestamp
 from price_predictions.core.settings import Settings, price_predictions_settings
-from price_predictions.fstore import PricePredictionsReader
+from price_predictions.fstore import PricePredictionsStore
 from price_predictions.model.base import (
     CryptoPricePredictionModel,
     DummyModel,
@@ -47,8 +47,8 @@ def train(s: Settings):
         fview_version (int): The version of the feature view.
     """
     # 1. Setup experiment
-    reader = PricePredictionsReader(s)
-    exp, _ = setup_experiment(s, fview_name=reader.labeled_fview_name)
+    reader = PricePredictionsStore(s)
+    exp, _ = setup_experiment(s, fview_name=reader.fview_name)
 
     # 2. Train test split with features/target from the feature store
     X_train, y_train, X_test, y_test = train_test_split(s, reader, exp)
@@ -131,7 +131,7 @@ def setup_experiment(s: Settings, fview_name: str):
 
 def train_test_split(
     s: Settings,
-    reader: PricePredictionsReader,
+    reader: PricePredictionsStore,
     exp: CometExperiment,
 ) -> TrainTestSplit:
     """

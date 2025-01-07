@@ -10,10 +10,11 @@ from hsfs.feature_store import FeatureStore
 from hsfs.feature_view import FeatureView
 from loguru import logger
 
+from domain.ta import TechnicalIndicator
 from price_predictions.core.settings import Settings
 
 
-class PricePredictionsReader:
+class PricePredictionsStore:
     """
     Class to extract the Price Predictions features from a feature view from Hopsworks.
 
@@ -21,17 +22,37 @@ class PricePredictionsReader:
     matching the `asset` and `llm_name` columns.
     """
 
-    def __init__(self, settings: Settings):
+    def __init__(
+        self,
+        settings: Settings,
+        fview_base_name: str | None = None,
+        fview_version: int | None = None,
+        ta_features: list[TechnicalIndicator] | None = None,
+    ):
+        """
+        Initialize the PricePredictionsReader.
+
+        Args:
+            settings (Settings): The settings object.
+            fview_base_name (str | None, optional): The base name of the feature view.
+                Defaults to None.
+            fview_version (int | None, optional): The version of the feature view.
+                Defaults to None.
+            ta_features (list[TechnicalIndicator] | None, optional): The technical
+                indicators to override the default ones from the settings.
+        """
         self.symbol = settings.symbol
         self.timeframe = settings.timeframe
-        self.fview_base_name = settings.fview_name
-        self.fview_version = settings.fview_version
-        self.ta_features = settings.ta_features
+        self.fview_base_name = fview_base_name or settings.fview_name.split("__")[0]
+        self.fview_version = fview_version or settings.fview_version
+        self.ta_features = ta_features or settings.ta_features
+
         logger.info(f"Connecting to Hopsworks: {settings.hopsworks_project_name}")
         self.project = hopsworks.login(
             project=settings.hopsworks_project_name,
             api_key_value=settings.hopsworks_api_key,
         )
+
         self.fstore: FeatureStore = self.project.get_feature_store()
         self.ta = cast(
             FeatureGroup,
@@ -49,7 +70,7 @@ class PricePredictionsReader:
         )
         self.fview = self.init_fview()
         logger.info(
-            f"Reading Feature View: {self.labeled_fview_name} "
+            f"Reading Feature View: {self.fview_name} "
             f"(version: {self.fview.version})"
         )
 
@@ -67,15 +88,15 @@ class PricePredictionsReader:
         """
         try:
             return self.fstore.get_feature_view(
-                name=self.labeled_fview_name,
+                name=self.fview_name,
                 version=self.fview_version,
             )
 
         except hsfs_exceptions.RestAPIError:
-            logger.info(f"Creating feature view {self.labeled_fview_name}...")
+            logger.info(f"Creating feature view {self.fview_name}...")
 
             return self.fstore.create_feature_view(
-                name=self.labeled_fview_name,
+                name=self.fview_name,
                 version=self.fview_version,
                 description=f"""
                     Feature view combining TA and news signals by
@@ -95,7 +116,7 @@ class PricePredictionsReader:
             )
 
     @property
-    def labeled_fview_name(self) -> str:
+    def fview_name(self) -> str:
         """
         Get the name of the feature view with the symbol and timeframe.
         Example: "sentimented_ta__xrpusd_1h"
