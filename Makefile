@@ -1,7 +1,7 @@
 CLUSTERS = messagebus indicators indicators_historical sentiment_signals
-SERVICES = trades candles ta features news news_signals
+SERVICES = trades candles ta features news news_signals price_predictions
 SERVICES_PATH = services/$(svc)/$(svc)
-PORTS = trades=8001 candles=8002 ta=8003 features=8004 news=8005 news_signals=8006
+PORTS = trades=8001 candles=8002 ta=8003 features=8004 news=8005 news_signals=8006 price_predictions=8007
 
 # Get the port for a service from the PORTS variable
 port_for_service = $(word 2,$(subst =, ,$(filter $(1)=%,$(PORTS))))

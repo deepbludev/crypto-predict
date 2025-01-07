@@ -71,6 +71,7 @@ known-first-party = [
   "ta",
   "news",
   "news_signals",
+  "price_predictions",
   # libs
   "domain", 
 ]

@@ -42,10 +42,12 @@ class XGBoostModel(CryptoPricePredictionModel):
         self.objective = objective
         self.eval_metric = eval_metric
         self.init_model()
-
-        name_base = "price_predictor_xgboost"
-        name = f"{name_base}_{symbol.value}_{timeframe.value}x{target_horizon}"
-        super().__init__(name, status)
+        super().__init__(
+            symbol=symbol,
+            timeframe=timeframe,
+            target_horizon=target_horizon,
+            status=status,
+        )
 
     def init_model(self, hyperparams: dict[str, Any] | None = None) -> Self:
         self.model = self.create_xgb(**(hyperparams or {}))

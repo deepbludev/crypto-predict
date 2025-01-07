@@ -16,6 +16,11 @@ class Settings(BaseSettings):
         env_prefix="price_predictions_",
     )
 
+    # broker settings
+    broker_address: str = "localhost:19092"
+    consumer_group: str = "cg_price_predictions"
+    input_topic: str = "candles"
+
     # model training settings
     deployment_env: DeploymentEnv = DeploymentEnv.DEV
     days_back: int = 30

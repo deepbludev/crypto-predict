@@ -6,6 +6,11 @@ import numpy as np
 import pandas as pd
 from comet_ml import CometExperiment
 from loguru import logger
+from sklearn.metrics import mean_absolute_error as mae
+from sklearn.metrics import mean_squared_error as mse
+from sklearn.metrics import r2_score
+
+from domain.core import now_timestamp
 from price_predictions.core.settings import Settings, price_predictions_settings
 from price_predictions.fstore import PricePredictionsReader
 from price_predictions.model.base import (
@@ -14,11 +19,6 @@ from price_predictions.model.base import (
     ModelStatus,
 )
 from price_predictions.model.xgboost import XGBoostModel
-from sklearn.metrics import mean_absolute_error as mae
-from sklearn.metrics import mean_squared_error as mse
-from sklearn.metrics import r2_score
-
-from domain.core import now_timestamp
 
 TrainTestSplit = tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]
 
@@ -56,8 +56,12 @@ def train(s: Settings):
     # 3. Evaluate baseline model
     evaluate_baseline(
         (X_train, y_train, X_test, y_test),
-        model=DummyModel(),
         exp=exp,
+        model=DummyModel(
+            symbol=s.symbol,
+            timeframe=s.timeframe,
+            target_horizon=s.target_horizon,
+        ),
     )
 
     # 4. Train the XGBoost model.

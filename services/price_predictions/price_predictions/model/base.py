@@ -4,7 +4,9 @@ from typing import Any, Self, Sequence, cast
 
 import pandas as pd
 
+from domain.candles import CandleTimeframe
 from domain.core import DeploymentEnv
+from domain.trades import Symbol
 
 
 class ModelStatus(str, Enum):
@@ -26,8 +28,26 @@ class ModelStatus(str, Enum):
 
 
 class CryptoPricePredictionModel(ABC):
-    def __init__(self, name: str, status: ModelStatus = ModelStatus.NONE):
-        self.name = name
+    @staticmethod
+    def model_name(
+        symbol: Symbol,
+        timeframe: CandleTimeframe,
+        target_horizon: int,
+    ) -> str:
+        name_base = "price_predictor_xgboost"
+        return f"{name_base}_{symbol.value}_{timeframe.value}x{target_horizon}"
+
+    def __init__(
+        self,
+        symbol: Symbol,
+        timeframe: CandleTimeframe,
+        target_horizon: int,
+        status: ModelStatus = ModelStatus.NONE,
+    ):
+        self.name = self.model_name(symbol, timeframe, target_horizon)
+        self.symbol = symbol
+        self.timeframe = timeframe
+        self.target_horizon = target_horizon
         self.status = status
 
     @abstractmethod
@@ -79,14 +99,25 @@ class DummyModel(CryptoPricePredictionModel):
     the current price.
     """
 
-    def __init__(self, feature: str = "close"):
+    def __init__(
+        self,
+        symbol: Symbol,
+        timeframe: CandleTimeframe,
+        target_horizon: int,
+        feature: str = "close",
+    ):
         """
         Initialize the dummy model using the given feature name as the dummy prediction.
 
         Args:
             feature: The feature to use as the dummy prediction (default: 'close').
         """
-        super().__init__(name="dummy", status=ModelStatus.NONE)
+        super().__init__(
+            symbol=symbol,
+            timeframe=timeframe,
+            target_horizon=target_horizon,
+            status=ModelStatus.NONE,
+        )
         self.feature = feature
 
     def unpack_model(self):
