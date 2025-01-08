@@ -29,7 +29,7 @@ class ElasticSearchSink(BatchingSink):
             for p in predictions:
                 logger.info(f"Indexing prediction ({p.key}): {p.predicted_close_price}")
 
-            results = helpers.streaming_bulk(
+            result_stream = helpers.streaming_bulk(
                 client=self.client,
                 chunk_size=self.chunk_size,
                 max_retries=self.max_retries,
@@ -43,7 +43,7 @@ class ElasticSearchSink(BatchingSink):
                 ),
             )
 
-            for is_success, doc in results:
+            for is_success, doc in result_stream:
                 if not is_success:
                     logger.error(f"Failed to index document: {doc}")
 
