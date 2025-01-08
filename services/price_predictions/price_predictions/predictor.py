@@ -19,7 +19,7 @@ class PricePrediction(Schema):
     timeframe: CandleTimeframe
     horizon: int = Field(..., description="The horizon of the prediction in seconds")
     close_time: int
-    predicted_close_price: float
+    predicted: float
 
     @computed_field
     @property
@@ -113,5 +113,5 @@ class PricePredictor:
             timeframe=self.timeframe,
             horizon=self.target_horizon,
             close_time=close_time,
-            predicted_close_price=prediction,
+            predicted=prediction,
         )

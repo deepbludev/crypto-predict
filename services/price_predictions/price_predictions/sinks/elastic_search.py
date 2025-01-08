@@ -1,4 +1,5 @@
-from elasticsearch import Elasticsearch, helpers
+from elasticsearch import Elasticsearch
+from elasticsearch.helpers import streaming_bulk
 from loguru import logger
 from quixstreams.sinks.base import BatchingSink, SinkBackpressureError, SinkBatch
 
@@ -29,7 +30,7 @@ class ElasticSearchSink(BatchingSink):
             for p in predictions:
                 logger.info(f"Indexing prediction: {p.unpack()}")
 
-            result_stream = helpers.streaming_bulk(
+            result_stream = streaming_bulk(
                 client=self.client,
                 chunk_size=self.chunk_size,
                 max_retries=self.max_retries,
