@@ -27,7 +27,7 @@ class ElasticSearchSink(BatchingSink):
         try:
             predictions = [PricePrediction.parse(i.value) for i in batch if i.value]
             for p in predictions:
-                logger.info(f"Indexing prediction ({p.key}): {p.predicted_close_price}")
+                logger.info(f"Indexing prediction: {p.unpack()}")
 
             result_stream = helpers.streaming_bulk(
                 client=self.client,
