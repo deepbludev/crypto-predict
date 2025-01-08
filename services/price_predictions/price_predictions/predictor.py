@@ -26,7 +26,7 @@ class PricePrediction(Schema):
     def key(self) -> str:
         return (
             f"{self.symbol.value}-"
-            f"{self.timeframe.value}x{self.horizon}-"
+            f"{self.horizon}x{self.timeframe.value}-"
             f"{self.prediction_timestamp}"
         )
 
