@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from typing import Annotated, Any, cast
 
 import comet_ml
@@ -8,7 +9,7 @@ from xgboost import XGBRegressor
 
 from domain.candles import CandleTimeframe
 from domain.core import Schema
-from domain.trades import Symbol
+from domain.trades import Asset, Symbol
 from price_predictions.core.settings import Settings
 from price_predictions.fstore import PricePredictionsStore
 from price_predictions.model.xgboost import XGBoostModel
@@ -25,6 +26,16 @@ class Prediction(Schema):
     @property
     def prediction_timestamp(self) -> int:
         return self.close_time + self.horizon * self.timeframe.to_sec()
+
+    @computed_field
+    @property
+    def prediction_timestamp_iso(self) -> str:
+        return datetime.fromtimestamp(self.prediction_timestamp).isoformat()
+
+    @computed_field
+    @property
+    def asset(self) -> Asset:
+        return self.symbol.to_asset()
 
 
 class PricePredictor:
@@ -87,7 +98,8 @@ class PricePredictor:
 
     def predict(self) -> Prediction:
         """
-        Predict the price of the asset.
+        Predict the price of the asset using the latest feature vector,
+        projecting it forward to the target horizon.
         """
         feature_vectors = self.fstore.get_inference_features()
         close_time = feature_vectors["close_time"].iloc[0]
@@ -100,9 +112,3 @@ class PricePredictor:
             close_time=close_time,
             predicted_close_price=prediction,
         )
-
-
-if __name__ == "__main__":
-    predictor = PricePredictor(settings=Settings())
-    prediction = predictor.predict()
-    print(prediction)
