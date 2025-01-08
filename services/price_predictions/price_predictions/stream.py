@@ -3,6 +3,7 @@ from loguru import logger
 
 from price_predictions.core.settings import price_predictions_settings
 from price_predictions.predictor import PricePredictor
+from price_predictions.sinks.elastic_search import ElasticSearchSink
 
 
 def run_stream(stream_app: qs.Application):
@@ -24,13 +25,14 @@ def generate_predictions_and_store_in_elastic_search(
     """
     Generates features from the input topic and loads them to the feature store.
     """
-    input_topic = price_predictions_settings().input_topic
-    predictor = PricePredictor(settings=price_predictions_settings())
+    settings = price_predictions_settings()
+    input_topic = settings.input_topic
+    predictor = PricePredictor(settings=settings)
+    elastic_search_sink = ElasticSearchSink(settings=settings)
     (
         stream_app.dataframe(stream_app.topic(input_topic, value_deserializer="json"))
-        .apply(lambda _: predictor.predict())
-        .apply(lambda prediction: logger.info(f"Prediction: {prediction.unpack()}"))
-        # .sink(fs)
+        .apply(lambda _: predictor.predict().unpack())
+        .sink(elastic_search_sink)
     )
 
     return stream_app

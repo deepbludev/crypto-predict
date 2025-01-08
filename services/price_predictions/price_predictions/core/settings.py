@@ -70,6 +70,10 @@ class Settings(BaseSettings):
     comet_ml_workspace: str = "comet_ml_workspace"
     comet_ml_project: str = "comet_ml_project"
 
+    # elasticsearch credentials
+    elasticsearch_url: str = "http://localhost:9200"
+    elasticsearch_index: str = "price_predictions"
+
 
 @lru_cache()
 def price_predictions_settings() -> Settings:

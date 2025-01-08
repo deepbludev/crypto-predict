@@ -1,5 +1,4 @@
 import json
-from datetime import datetime
 from typing import Annotated, Any, cast
 
 import comet_ml
@@ -15,7 +14,7 @@ from price_predictions.fstore import PricePredictionsStore
 from price_predictions.model.xgboost import XGBoostModel
 
 
-class Prediction(Schema):
+class PricePrediction(Schema):
     symbol: Symbol
     timeframe: CandleTimeframe
     horizon: int = Field(..., description="The horizon of the prediction in seconds")
@@ -24,13 +23,17 @@ class Prediction(Schema):
 
     @computed_field
     @property
-    def prediction_timestamp(self) -> int:
-        return self.close_time + self.horizon * self.timeframe.to_sec()
+    def key(self) -> str:
+        return (
+            f"{self.symbol.value}-"
+            f"{self.timeframe.value}x{self.horizon}-"
+            f"{self.prediction_timestamp}"
+        )
 
     @computed_field
     @property
-    def prediction_timestamp_iso(self) -> str:
-        return datetime.fromtimestamp(self.prediction_timestamp).isoformat()
+    def prediction_timestamp(self) -> int:
+        return self.close_time + self.horizon * self.timeframe.to_sec()
 
     @computed_field
     @property
@@ -96,7 +99,7 @@ class PricePredictor:
             ta_features=json.loads(get_param("ta_features")),
         )
 
-    def predict(self) -> Prediction:
+    def predict(self) -> PricePrediction:
         """
         Predict the price of the asset using the latest feature vector,
         projecting it forward to the target horizon.
@@ -105,7 +108,7 @@ class PricePredictor:
         close_time = feature_vectors["close_time"].iloc[0]
         prediction = self.model.predict(feature_vectors)[0]
 
-        return Prediction(
+        return PricePrediction(
             symbol=self.symbol,
             timeframe=self.timeframe,
             horizon=self.target_horizon,
