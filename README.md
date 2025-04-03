@@ -2,6 +2,8 @@
 
 This repository contains the code for the Crypto Price Predictor project, a machine learning system designed to predict cryptocurrency price movements by combining real-time market data with news sentiment analysis.
 
+![image]([files/Users/jzhang/Desktop/Isolated.png](https://i.postimg.cc/qBbGLkgB/059e3380-dddb-49ce-8419-e4ed520c4f6a.gif))
+
 ## Project Overview
 The system ingests two main types of data:
 1. Real-time cryptocurrency trades that are transformed into technical analysis features
